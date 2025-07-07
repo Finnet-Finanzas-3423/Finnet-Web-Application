@@ -1,0 +1,14 @@
+input:focus {
+    outline: none;
+}
+
+input::placeholder{
+    color: #363636;
+}
+
+.fondo{
+    min-width: 100%;
+    min-height: 100dvh;
+    background-size: cover;
+    background-image: url('https://images.pexels.com/photos/1287145/pexels-photo-1287145.jpeg?cs=srgb&dl=pexels-eberhardgross-1287145.jpg&fm=jpg');
+}
