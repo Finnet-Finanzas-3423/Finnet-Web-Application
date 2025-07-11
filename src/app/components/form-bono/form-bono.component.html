@@ -64,13 +64,13 @@
         <div class="form-group">
           <label>Moneda <span class="required">*</span></label>
           <div class="currency-selector">
-            <ng-container *ngFor="let moneda of monedas">
+            <ng-container *ngFor="let moneda of monedasPrincipales">
               <button type="button" [class.active]="bonoForm.get('moneda')?.value === moneda"
                       (click)="seleccionarMoneda(moneda)" class="btn-moneda">
                 {{ moneda }}
               </button>
             </ng-container>
-            <div class="dropdown-container" *ngIf="monedas.length > 4">
+            <div class="dropdown-container">
               <button type="button" class="btn-moneda dropdown-toggle"
                       [class.active]="mostrarMonedaDropdown()"
                       (click)="toggleMonedaDropdown()">
@@ -78,7 +78,7 @@
                 <i class="fas fa-chevron-down"></i>
               </button>
               <div class="dropdown-menu" *ngIf="showMonedaDropdown">
-                <ng-container *ngFor="let moneda of monedas.slice(4)">
+                <ng-container *ngFor="let moneda of getMonedasSecundarias()">
                   <button type="button" class="dropdown-item"
                           [class.active]="bonoForm.get('moneda')?.value === moneda"
                           (click)="seleccionarMoneda(moneda)">{{ moneda }}</button>
@@ -131,14 +131,27 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label for="plazoAnios">Plazo <span class="required">*</span></label>
+            <label for="fechaEmision">Fecha de Emisión <span class="required">*</span></label>
+            <div class="input-with-icon">
+              <i class="fas fa-calendar icon-left"></i>
+              <input type="date" id="fechaEmision" formControlName="fechaEmision" class="form-control with-icon">
+            </div>
+            <div *ngIf="f['fechaEmision'].touched && f['fechaEmision'].errors" class="error-text">
+              <div *ngIf="f['fechaEmision'].errors['required']">La fecha de emisión es obligatoria</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="fechaVencimiento">Fecha de Vencimiento <span class="required">*</span></label>
             <div class="input-with-icon">
               <i class="fas fa-calendar-alt icon-left"></i>
-              <input type="number" id="plazoAnios" formControlName="plazoAnios" placeholder="Plazo en años" class="form-control with-icon">
-              <span class="input-suffix">años</span>
+              <input type="date" id="fechaVencimiento" formControlName="fechaVencimiento" class="form-control with-icon">
             </div>
-            <div *ngIf="f['plazoAnios'].touched && f['plazoAnios'].errors" class="error-text">
-              <div *ngIf="f['plazoAnios'].errors['required']">El plazo es obligatorio</div>
+            <div *ngIf="f['fechaVencimiento'].touched && f['fechaVencimiento'].errors" class="error-text">
+              <div *ngIf="f['fechaVencimiento'].errors['required']">La fecha de vencimiento es obligatoria</div>
+            </div>
+            <div *ngIf="bonoForm.hasError('fechaVencimientoInvalida') && f['fechaVencimiento'].touched" class="error-text">
+              La fecha de vencimiento debe ser posterior a la fecha de emisión
             </div>
           </div>
 
@@ -255,17 +268,6 @@
                 <option *ngFor="let capitalizacion of capitalizaciones" [value]="capitalizacion">{{ capitalizacion }}</option>
               </select>
               <i class="fas fa-chevron-down icon-right"></i>
-            </div>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group flex-1">
-            <label for="primaRedencion">Prima de Redención</label>
-            <div class="input-with-icon">
-              <i class="fas fa-award icon-left"></i>
-              <input type="number" id="primaRedencion" formControlName="primaRedencion" placeholder="Prima de redención" class="form-control with-icon">
-              <span class="input-suffix">%</span>
             </div>
           </div>
         </div>
@@ -448,8 +450,16 @@
               <div class="summary-value">{{ bonoResumen.valoresYPlazos?.valorComercial }}</div>
             </div>
             <div class="summary-row">
-              <div class="summary-label">Plazo:</div>
-              <div class="summary-value">{{ bonoResumen.valoresYPlazos?.plazoAnios }}</div>
+              <div class="summary-label">Fecha de Emisión:</div>
+              <div class="summary-value">{{ bonoResumen.valoresYPlazos?.fechaEmision }}</div>
+            </div>
+            <div class="summary-row">
+              <div class="summary-label">Fecha de Vencimiento:</div>
+              <div class="summary-value">{{ bonoResumen.valoresYPlazos?.fechaVencimiento }}</div>
+            </div>
+            <div class="summary-row">
+              <div class="summary-label">Duración:</div>
+              <div class="summary-value">{{ bonoResumen.valoresYPlazos?.duracion }}</div>
             </div>
             <div class="summary-row">
               <div class="summary-label">Plazo de Gracia:</div>

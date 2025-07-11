@@ -39,6 +39,7 @@ export class FormBonoComponent implements OnInit {
   submitted = false;
   showMonedaDropdown = false;
   isLoading = false;
+  currentDate: string;
 
   // Definición de pasos
   steps = [
@@ -50,7 +51,13 @@ export class FormBonoComponent implements OnInit {
     { title: 'Resumen', icon: 'fa-clipboard-check', isValid: false }
   ];
 
-  monedas: Moneda[] = ['PEN', 'USD', 'EUR', 'GBP'];
+  monedas: Moneda[] = [
+    'PEN', 'USD', 'EUR', 'GBP', 'JPY', 'CNY', 'INR', 'AUD', 'CAD',
+    'CHF', 'NZD', 'RUB', 'ZAR', 'BRL', 'MXN', 'ARS', 'CLP', 'COP',
+    'VEF', 'UYU'
+  ];
+
+  monedasPrincipales: Moneda[] = ['PEN', 'USD', 'EUR', 'GBP'];
 
   frecuencias: Periodicidad[] = [
     'ANUAL', 'SEMESTRAL', 'CUATRIMESTRAL', 'TRIMESTRAL', 'BIMESTRAL',
@@ -63,7 +70,7 @@ export class FormBonoComponent implements OnInit {
   ];
 
   metodosAmortizacion: MetodoAmortizacion[] = ['FRANCES', 'ALEMAN', 'AMERICANO'];
-  metodosAmortizacionDisponibles: MetodoAmortizacion[] = ['FRANCES', 'ALEMAN', 'AMERICANO'];
+  metodosAmortizacionDisponibles: MetodoAmortizacion[] = ['FRANCES'];
   plazosGracia: PlazoGracia[] = ['NINGUNO', 'PARCIAL', 'TOTAL'];
   tiposTasa: TipoTasa[] = ['EFECTIVA', 'NOMINAL'];
 
@@ -74,23 +81,52 @@ export class FormBonoComponent implements OnInit {
     private formBuilder: FormBuilder,
     private bonoService: BonoService,
     private router: Router,
-  ) { }
+  ) {
+    // Obtener fecha actual en formato YYYY-MM-DD para los date pickers
+    const today = new Date();
+    this.currentDate = this.formatDateForInput(today);
+  }
 
   ngOnInit(): void {
     this.inicializarFormulario();
-    // Marcar primer paso como válido después de inicializar
     setTimeout(() => {
       this.validateCurrentStep();
     }, 0);
   }
 
+  formatDateForInput(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  formatDateForDisplay(dateString: string): string {
+    if (!dateString) return '';
+
+    const date = new Date(`${dateString}T12:00:00Z`);
+
+    return date.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'UTC'
+    });
+  }
+
   inicializarFormulario(): void {
+    const today = new Date();
+    const oneYearLater = new Date(today);
+    oneYearLater.setFullYear(today.getFullYear() + 1);
+
     this.bonoForm = this.formBuilder.group({
       nombre: ['', Validators.required],
       descripcion: [''],
       moneda: ['PEN'],
       valorNominal: ['', [Validators.required, Validators.min(0)]],
       valorComercial: ['', Validators.min(0)],
+      fechaEmision: [this.formatDateForInput(today), Validators.required],
+      fechaVencimiento: [this.formatDateForInput(oneYearLater), Validators.required],
       tasaCupon: ['', [Validators.required, Validators.min(0)]],
       tipoTasaCupon: ['EFECTIVA'],
       capitalizacionCupon: ['ANUAL'],
@@ -98,7 +134,6 @@ export class FormBonoComponent implements OnInit {
       tasaMercado: ['', Validators.min(0)],
       tipoTasaMercado: ['EFECTIVA'],
       capitalizacionMercado: ['ANUAL'],
-      plazoAnios: ['', [Validators.required, Validators.min(1)]],
       metodoAmortizacion: ['FRANCES'],
       primaRedencion: ['0', Validators.min(0)],
       estructuracion: ['0', Validators.min(0)],
@@ -109,12 +144,27 @@ export class FormBonoComponent implements OnInit {
       duracionPlazoGracia: ['0', Validators.min(0)],
       comision: ['0', Validators.min(0)],
       gastosAdministrativos: ['0', Validators.min(0)],
-      userId: [1] // Este valor se asignaría dinámicamente desde el servicio de autenticación
-    });
+      userId: [1]
+    }, { validators: this.fechaVencimientoValidator });
 
     this.bonoForm.valueChanges.subscribe(() => {
       this.validateCurrentStep();
     });
+  }
+
+  fechaVencimientoValidator(formGroup: FormGroup) {
+    const fechaEmision = formGroup.get('fechaEmision')?.value;
+    const fechaVencimiento = formGroup.get('fechaVencimiento')?.value;
+
+    if (fechaEmision && fechaVencimiento) {
+      const emisionDate = new Date(fechaEmision);
+      const vencimientoDate = new Date(fechaVencimiento);
+
+      if (vencimientoDate <= emisionDate) {
+        return { fechaVencimientoInvalida: true };
+      }
+    }
+    return null;
   }
 
   get f() { return this.bonoForm.controls; }
@@ -122,23 +172,28 @@ export class FormBonoComponent implements OnInit {
   validateCurrentStep(): void {
     switch (this.currentStep) {
       case 0:
-        this.steps[0].isValid = !!this.bonoForm.get('nombre')?.valid
-        break
+        this.steps[0].isValid = !!this.bonoForm.get('nombre')?.valid;
+        break;
       case 1:
-        this.steps[1].isValid = !!(this.bonoForm.get('valorNominal')?.valid && this.bonoForm.get('plazoAnios')?.valid)
-        break
+        this.steps[1].isValid = !!(
+          this.bonoForm.get('valorNominal')?.valid &&
+          this.bonoForm.get('fechaEmision')?.valid &&
+          this.bonoForm.get('fechaVencimiento')?.valid &&
+          !this.bonoForm.hasError('fechaVencimientoInvalida')
+        );
+        break;
       case 2:
-        this.steps[2].isValid = !!this.bonoForm.get('tasaCupon')?.valid
-        break
+        this.steps[2].isValid = !!this.bonoForm.get('tasaCupon')?.valid;
+        break;
       case 3:
-        this.steps[3].isValid = true
-        break
+        this.steps[3].isValid = true;
+        break;
       case 4:
-        this.steps[4].isValid = true
-        break
+        this.steps[4].isValid = true;
+        break;
       case 5:
-        this.steps[5].isValid = true // El último paso siempre es válido para permitir calcular
-        break
+        this.steps[5].isValid = true;
+        break;
     }
   }
 
@@ -197,20 +252,27 @@ export class FormBonoComponent implements OnInit {
   markCurrentStepAsTouched(): void {
     switch (this.currentStep) {
       case 0:
-        this.bonoForm.get('nombre')!.markAsTouched()
-        break
+        this.bonoForm.get('nombre')!.markAsTouched();
+        break;
       case 1:
-        this.bonoForm.get('valorNominal')!.markAsTouched()
-        this.bonoForm.get('plazoAnios')!.markAsTouched()
-        break
+        this.bonoForm.get('valorNominal')!.markAsTouched();
+        this.bonoForm.get('fechaEmision')!.markAsTouched();
+        this.bonoForm.get('fechaVencimiento')!.markAsTouched();
+        break;
       case 2:
-        this.bonoForm.get('tasaCupon')!.markAsTouched()
-        break
+        this.bonoForm.get('tasaCupon')!.markAsTouched();
+        break;
     }
   }
 
   prepararResumen(): void {
     const formValues = this.bonoForm.value;
+
+    const fechaEmision = new Date(formValues.fechaEmision);
+    const fechaVencimiento = new Date(formValues.fechaVencimiento);
+    const duracionAnios = fechaVencimiento.getFullYear() - fechaEmision.getFullYear() +
+      (fechaVencimiento.getMonth() - fechaEmision.getMonth()) / 12 +
+      (fechaVencimiento.getDate() - fechaEmision.getDate()) / 365.25;
 
     this.bonoResumen = {
       informacionPrincipal: {
@@ -221,7 +283,9 @@ export class FormBonoComponent implements OnInit {
       valoresYPlazos: {
         valorNominal: `${formValues.valorNominal} ${formValues.moneda}`,
         valorComercial: formValues.valorComercial ? `${formValues.valorComercial} ${formValues.moneda}` : 'No especificado',
-        plazoAnios: `${formValues.plazoAnios} años`,
+        fechaEmision: this.formatDateForDisplay(formValues.fechaEmision),
+        fechaVencimiento: this.formatDateForDisplay(formValues.fechaVencimiento),
+        duracion: `${duracionAnios.toFixed(2)} años`,
         plazoGracia: formValues.plazoGracia,
         duracionPlazoGracia: formValues.duracionPlazoGracia ? `${formValues.duracionPlazoGracia} periodos` : 'No aplicable'
       },
@@ -278,9 +342,13 @@ export class FormBonoComponent implements OnInit {
     return this.metodosAmortizacionDisponibles.includes(metodo);
   }
 
-  // Acciones finales
   limpiarCampos(): void {
     this.submitted = false;
+
+    const today = new Date();
+    const oneYearLater = new Date(today);
+    oneYearLater.setFullYear(today.getFullYear() + 1);
+
     this.bonoForm.reset();
     this.bonoForm.patchValue({
       moneda: 'PEN',
@@ -299,7 +367,9 @@ export class FormBonoComponent implements OnInit {
       cavali: 0,
       comision: 0,
       gastosAdministrativos: 0,
-      userId: 1
+      userId: 1,
+      fechaEmision: this.formatDateForInput(today),
+      fechaVencimiento: this.formatDateForInput(oneYearLater)
     });
 
     this.currentStep = 0;
@@ -330,7 +400,7 @@ export class FormBonoComponent implements OnInit {
       // Identificar el primer paso con errores y navegar a él
       if (!this.bonoForm.get('nombre')!.valid) {
         this.currentStep = 0;
-      } else if (!this.bonoForm.get('valorNominal')!.valid || !this.bonoForm.get('plazoAnios')!.valid) {
+      } else if (!this.bonoForm.get('valorNominal')!.valid || !this.bonoForm.get('fechaEmision')!.valid || !this.bonoForm.get('fechaVencimiento')!.valid) {
         this.currentStep = 1;
       } else if (!this.bonoForm.get('tasaCupon')!.valid) {
         this.currentStep = 2;
@@ -343,10 +413,19 @@ export class FormBonoComponent implements OnInit {
     // Crear objeto de bono basado en el formulario
     const formValues = this.bonoForm.value;
 
-    // Calcular fechas basadas en plazo en años
-    const fechaEmision = new Date();
-    const fechaVencimiento = new Date();
-    fechaVencimiento.setFullYear(fechaEmision.getFullYear() + Number(formValues.plazoAnios));
+    // Ajuste importante: Crear fechas con hora 12:00 para evitar problemas de zona horaria
+    const fechaEmisionStr = formValues.fechaEmision;
+    const fechaVencimientoStr = formValues.fechaVencimiento;
+
+    // Construir fechas con hora 12:00 UTC para evitar cambios de día
+    const fechaEmision = new Date(`${fechaEmisionStr}T12:00:00Z`);
+    const fechaVencimiento = new Date(`${fechaVencimientoStr}T12:00:00Z`);
+
+    console.log('Fecha de emisión seleccionada:', formValues.fechaEmision);
+    console.log('Fecha de emisión para envío:', fechaEmision.toISOString());
+
+    console.log('Fecha de vencimiento seleccionada:', formValues.fechaVencimiento);
+    console.log('Fecha de vencimiento para envío:', fechaVencimiento.toISOString());
 
     const bono: BonoModel = {
       nombre: formValues.nombre,
@@ -446,13 +525,17 @@ export class FormBonoComponent implements OnInit {
 
   mostrarMonedaDropdown(): boolean {
     const monedaActual = this.bonoForm.get('moneda')?.value;
-    return this.monedas.slice(2).includes(monedaActual);
+    return !this.monedasPrincipales.includes(monedaActual) && this.monedas.includes(monedaActual);
+  }
+
+  getMonedasSecundarias(): Moneda[] {
+    return this.monedas.filter(m => !this.monedasPrincipales.includes(m));
   }
 
   getTextoBotonMoneda(): string {
     const monedaActual = this.bonoForm.get('moneda')?.value;
 
-    if (this.monedas.slice(2).includes(monedaActual)) {
+    if (this.getMonedasSecundarias().includes(monedaActual)) {
       return monedaActual;
     }
 
