@@ -1,8 +1,8 @@
 import { Component, OnInit, HostListener } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import {Profile} from '../../../auth/models/profile.model';
-import {AuthService} from '../../../auth/services/auth.service';
+import { Profile } from '../../../auth/models/profile.model';
+import { AuthService } from '../../../auth/services/auth.service';
 
 @Component({
   selector: 'app-toolbar',
@@ -17,13 +17,16 @@ import {AuthService} from '../../../auth/services/auth.service';
 })
 export class ToolbarComponent implements OnInit {
   isScrolled = false;
-  username = '';
   userInitials = '';
   notificationCount = 2;
   userProfile: Profile | null = null;
   isLoading = true;
+  isMenuOpen = false;
 
-  constructor(private authService: AuthService) { }
+  constructor(
+    private authService: AuthService,
+    private router: Router
+  ) { }
 
   ngOnInit(): void {
     this.loadUserProfile();
@@ -34,12 +37,10 @@ export class ToolbarComponent implements OnInit {
     this.authService.profile().subscribe({
       next: (profile) => {
         this.userProfile = profile;
-        this.username = profile.name;
-        this.getUserInitials();
+        this.userInitials = this.getUserInitials(profile.razonSocial);
         this.isLoading = false;
       },
-      error: (error) => {
-        console.error('Error loading user profile:', error);
+      error: () => {
         this.isLoading = false;
       }
     });
@@ -49,7 +50,6 @@ export class ToolbarComponent implements OnInit {
   onWindowScroll() {
     this.isScrolled = window.scrollY > 30;
     const toolbar = document.querySelector('.toolbar-container');
-
     if (this.isScrolled) {
       toolbar?.classList.add('scrolled');
     } else {
@@ -57,16 +57,29 @@ export class ToolbarComponent implements OnInit {
     }
   }
 
-  private getUserInitials(): void {
-    if (this.userProfile) {
-      const name = this.userProfile.name;
-      const nameParts = name.split(' ');
+  toggleMenu(event: MouseEvent): void {
+    event.stopPropagation();
+    this.isMenuOpen = !this.isMenuOpen;
+  }
 
-      if (nameParts.length > 1) {
-        this.userInitials = nameParts[0][0] + nameParts[1][0];
-      } else {
-        this.userInitials = name.substring(0, 2).toUpperCase();
-      }
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const userProfileElement = document.querySelector('.user-profile');
+    if (userProfileElement && !userProfileElement.contains(event.target as Node) && this.isMenuOpen) {
+      this.isMenuOpen = false;
     }
+  }
+
+  logout(): void {
+    this.authService.logout();
+    this.router.navigate(['/auth/sign-in']);
+  }
+
+  private getUserInitials(text: string): string {
+    const parts = text.split(' ');
+    if (parts.length > 1) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return text.substring(0, 2).toUpperCase();
   }
 }

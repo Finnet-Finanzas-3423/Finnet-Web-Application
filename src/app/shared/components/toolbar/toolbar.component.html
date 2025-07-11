@@ -25,11 +25,20 @@
       <div *ngIf="isLoading" class="loading-spinner">
         <i class="fas fa-circle-notch fa-spin"></i>
       </div>
-      <div *ngIf="!isLoading && userProfile" class="user-profile">
+      <div *ngIf="!isLoading && userProfile" class="user-profile" (click)="toggleMenu($event)">
         <div class="avatar">{{ userInitials }}</div>
         <div class="user-menu-dropdown">
-          <span class="username">{{ userProfile.name }}</span>
-          <i class="fas fa-chevron-down"></i>
+          <span class="username">{{ userProfile.razonSocial }}</span>
+          <i class="fas fa-chevron-down" [class.fa-chevron-up]="isMenuOpen"></i>
+        </div>
+
+        <div *ngIf="isMenuOpen" class="dropdown-menu">
+          <ul>
+            <li (click)="logout()">
+              <i class="fas fa-sign-out-alt"></i>
+              <span>Cerrar sesión</span>
+            </li>
+          </ul>
         </div>
       </div>
     </div>
