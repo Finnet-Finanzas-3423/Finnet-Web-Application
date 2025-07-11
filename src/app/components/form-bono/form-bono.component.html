@@ -64,13 +64,13 @@
         <div class="form-group">
           <label>Moneda <span class="required">*</span></label>
           <div class="currency-selector">
-            <ng-container *ngFor="let moneda of monedas.slice(0,7)">
+            <ng-container *ngFor="let moneda of monedas">
               <button type="button" [class.active]="bonoForm.get('moneda')?.value === moneda"
                       (click)="seleccionarMoneda(moneda)" class="btn-moneda">
                 {{ moneda }}
               </button>
             </ng-container>
-            <div class="dropdown-container" *ngIf="monedas.length > 7">
+            <div class="dropdown-container" *ngIf="monedas.length > 4">
               <button type="button" class="btn-moneda dropdown-toggle"
                       [class.active]="mostrarMonedaDropdown()"
                       (click)="toggleMonedaDropdown()">
@@ -78,7 +78,7 @@
                 <i class="fas fa-chevron-down"></i>
               </button>
               <div class="dropdown-menu" *ngIf="showMonedaDropdown">
-                <ng-container *ngFor="let moneda of monedas.slice(7)">
+                <ng-container *ngFor="let moneda of monedas.slice(4)">
                   <button type="button" class="dropdown-item"
                           [class.active]="bonoForm.get('moneda')?.value === moneda"
                           (click)="seleccionarMoneda(moneda)">{{ moneda }}</button>
@@ -144,13 +144,25 @@
 
           <div class="form-group">
             <label>Plazo de Gracia</label>
-            <div class="option-selector">
-              <button type="button" *ngFor="let plazo of plazosGracia"
+            <div class="btn-option-group">
+              <button type="button"
+                      *ngFor="let plazo of plazosGracia"
+                      class="btn-option"
                       [class.active]="bonoForm.get('plazoGracia')?.value === plazo"
-                      (click)="seleccionarPlazoGracia(plazo)" class="btn-option">
+                      (click)="seleccionarPlazoGracia(plazo)">
                 {{ plazo }}
               </button>
             </div>
+          </div>
+        </div>
+
+        <!-- Mover este campo aquí desde el paso 1 -->
+        <div *ngIf="bonoForm.get('plazoGracia')?.value !== 'NINGUNO'" class="form-group">
+          <label for="duracionPlazoGracia">Duración del Plazo de Gracia</label>
+          <div class="input-with-icon">
+            <i class="fas fa-hourglass-half icon-left"></i>
+            <input type="number" id="duracionPlazoGracia" formControlName="duracionPlazoGracia" placeholder="Periodos" class="form-control with-icon">
+            <span class="input-suffix">periodos</span>
           </div>
         </div>
 
@@ -183,14 +195,66 @@
           </div>
 
           <div class="form-group flex-1">
+            <label>Tipo de Tasa Cupón</label>
+            <div class="toggle-switch">
+              <button type="button" [class.active]="bonoForm.get('tipoTasaCupon')?.value === 'EFECTIVA'"
+                      (click)="seleccionarTipoTasa('EFECTIVA', 'tipoTasaCupon')" class="toggle-btn left">
+                <i class="fas fa-check-circle"></i> EFECTIVA
+              </button>
+              <button type="button" [class.active]="bonoForm.get('tipoTasaCupon')?.value === 'NOMINAL'"
+                      (click)="seleccionarTipoTasa('NOMINAL', 'tipoTasaCupon')" class="toggle-btn right">
+                <i class="fas fa-percentage"></i> NOMINAL
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
             <label for="tasaMercado">Tasa de Mercado <span class="optional-badge">Opcional</span></label>
             <div class="input-with-icon">
               <i class="fas fa-chart-line icon-left"></i>
               <input type="number" id="tasaMercado" formControlName="tasaMercado" placeholder="Tasa de mercado" class="form-control with-icon">
               <span class="input-suffix">%</span>
             </div>
-            <div *ngIf="f['tasaMercado'].touched && f['tasaMercado'].errors" class="error-text">
-              <div *ngIf="f['tasaMercado'].errors['required']">La tasa de mercado es obligatoria</div>
+          </div>
+
+          <div class="form-group flex-1">
+            <label>Tipo de Tasa Mercado</label>
+            <div class="toggle-switch">
+              <button type="button" [class.active]="bonoForm.get('tipoTasaMercado')?.value === 'EFECTIVA'"
+                      (click)="seleccionarTipoTasa('EFECTIVA', 'tipoTasaMercado')" class="toggle-btn left">
+                <i class="fas fa-check-circle"></i> EFECTIVA
+              </button>
+              <button type="button" [class.active]="bonoForm.get('tipoTasaMercado')?.value === 'NOMINAL'"
+                      (click)="seleccionarTipoTasa('NOMINAL', 'tipoTasaMercado')" class="toggle-btn right">
+                <i class="fas fa-percentage"></i> NOMINAL
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add the capitalization selectors -->
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>Capitalización Cupón</label>
+            <div class="select-styled">
+              <i class="fas fa-sync icon-left"></i>
+              <select formControlName="capitalizacionCupon" class="form-control with-icon">
+                <option *ngFor="let capitalizacion of capitalizaciones" [value]="capitalizacion">{{ capitalizacion }}</option>
+              </select>
+              <i class="fas fa-chevron-down icon-right"></i>
+            </div>
+          </div>
+
+          <div class="form-group flex-1">
+            <label>Capitalización Mercado</label>
+            <div class="select-styled">
+              <i class="fas fa-sync icon-left"></i>
+              <select formControlName="capitalizacionMercado" class="form-control with-icon">
+                <option *ngFor="let capitalizacion of capitalizaciones" [value]="capitalizacion">{{ capitalizacion }}</option>
+              </select>
+              <i class="fas fa-chevron-down icon-right"></i>
             </div>
           </div>
         </div>
@@ -202,20 +266,6 @@
               <i class="fas fa-award icon-left"></i>
               <input type="number" id="primaRedencion" formControlName="primaRedencion" placeholder="Prima de redención" class="form-control with-icon">
               <span class="input-suffix">%</span>
-            </div>
-          </div>
-
-          <div class="form-group flex-1">
-            <label>Tipo de Tasa</label>
-            <div class="toggle-switch">
-              <button type="button" [class.active]="bonoForm.get('tipoTasa')?.value === 'EFECTIVA'"
-                      (click)="seleccionarTipoTasa('EFECTIVA')" class="toggle-btn left">
-                <i class="fas fa-check-circle"></i> EFECTIVA
-              </button>
-              <button type="button" [class.active]="bonoForm.get('tipoTasa')?.value === 'NOMINAL'"
-                      (click)="seleccionarTipoTasa('NOMINAL')" class="toggle-btn right">
-                <i class="fas fa-percentage"></i> NOMINAL
-              </button>
             </div>
           </div>
         </div>
@@ -240,6 +290,7 @@
           <div class="method-selector">
             <div *ngFor="let metodo of metodosAmortizacion" class="method-option">
               <input type="radio"
+                     [id]="'metodo-' + metodo"
                      name="metodoAmortizacion"
                      formControlName="metodoAmortizacion"
                      [value]="metodo"
@@ -281,13 +332,22 @@
           </div>
 
           <div class="form-group flex-1">
-            <label>Capitalización</label>
-            <div class="select-styled">
-              <i class="fas fa-sync icon-left"></i>
-              <select formControlName="capitalizacion" class="form-control with-icon">
-                <option *ngFor="let capitalizacion of capitalizaciones" [value]="capitalizacion">{{ capitalizacion }}</option>
-              </select>
-              <i class="fas fa-chevron-down icon-right"></i>
+            <label>Comisión</label>
+            <div class="input-with-icon">
+              <i class="fas fa-money-bill-wave icon-left"></i>
+              <input type="number" id="comision" formControlName="comision" placeholder="Comisión" class="form-control with-icon">
+              <span class="input-suffix">%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>Gastos Administrativos</label>
+            <div class="input-with-icon">
+              <i class="fas fa-file-invoice-dollar icon-left"></i>
+              <input type="number" id="gastosAdministrativos" formControlName="gastosAdministrativos" placeholder="Gastos administrativos" class="form-control with-icon">
+              <span class="input-suffix">%</span>
             </div>
           </div>
         </div>
@@ -395,6 +455,10 @@
               <div class="summary-label">Plazo de Gracia:</div>
               <div class="summary-value">{{ bonoResumen.valoresYPlazos?.plazoGracia }}</div>
             </div>
+            <div *ngIf="bonoForm.get('plazoGracia')?.value !== 'NINGUNO'" class="summary-row">
+              <div class="summary-label">Duración del Plazo de Gracia:</div>
+              <div class="summary-value">{{ bonoResumen.valoresYPlazos?.duracionPlazoGracia }}</div>
+            </div>
           </div>
 
           <div class="summary-section">
@@ -404,12 +468,24 @@
               <div class="summary-value">{{ bonoResumen.tasasEIntereses?.tasaCupon }}</div>
             </div>
             <div class="summary-row">
-              <div class="summary-label">Tipo de Tasa:</div>
-              <div class="summary-value">{{ bonoResumen.tasasEIntereses?.tipoTasa }}</div>
+              <div class="summary-label">Tipo de Tasa Cupón:</div>
+              <div class="summary-value">{{ bonoResumen.tasasEIntereses?.tipoTasaCupon }}</div>
+            </div>
+            <div class="summary-row">
+              <div class="summary-label">Capitalización Cupón:</div>
+              <div class="summary-value">{{ bonoResumen.tasasEIntereses?.capitalizacionCupon }}</div>
             </div>
             <div class="summary-row">
               <div class="summary-label">Tasa de Mercado:</div>
               <div class="summary-value">{{ bonoResumen.tasasEIntereses?.tasaMercado }}</div>
+            </div>
+            <div class="summary-row">
+              <div class="summary-label">Tipo de Tasa Mercado:</div>
+              <div class="summary-value">{{ bonoResumen.tasasEIntereses?.tipoTasaMercado }}</div>
+            </div>
+            <div class="summary-row">
+              <div class="summary-label">Capitalización Mercado:</div>
+              <div class="summary-value">{{ bonoResumen.tasasEIntereses?.capitalizacionMercado }}</div>
             </div>
             <div class="summary-row">
               <div class="summary-label">Prima de Redención:</div>
@@ -424,10 +500,6 @@
               <div class="summary-value">{{ bonoResumen.frecuenciasYMetodo?.frecuenciaPago }}</div>
             </div>
             <div class="summary-row">
-              <div class="summary-label">Capitalización:</div>
-              <div class="summary-value">{{ bonoResumen.frecuenciasYMetodo?.capitalizacion }}</div>
-            </div>
-            <div class="summary-row">
               <div class="summary-label">Método de Amortización:</div>
               <div class="summary-value">{{ bonoResumen.frecuenciasYMetodo?.metodoAmortizacion }}</div>
             </div>
@@ -435,6 +507,14 @@
 
           <div class="summary-section">
             <h4><i class="fas fa-tags"></i> Costos Adicionales</h4>
+            <div class="summary-row">
+              <div class="summary-label">Comisión:</div>
+              <div class="summary-value">{{ bonoResumen.costosAdicionales?.comision }}</div>
+            </div>
+            <div class="summary-row">
+              <div class="summary-label">Gastos Administrativos:</div>
+              <div class="summary-value">{{ bonoResumen.costosAdicionales?.gastosAdministrativos }}</div>
+            </div>
             <div class="summary-row">
               <div class="summary-label">Estructuración:</div>
               <div class="summary-value">{{ bonoResumen.costosAdicionales?.estructuracion }}</div>
@@ -464,14 +544,15 @@
 
   <!-- Wizard navigation -->
   <div class="wizard-navigation">
-    <button type="button" class="btn-prev" (click)="prevStep()">
+    <button type="button" class="btn-prev" (click)="prevStep()" [disabled]="isLoading">
       <i class="fas fa-arrow-left"></i>
       {{ currentStep === 0 ? 'Cancelar' : 'Anterior' }}
     </button>
 
     <div class="step-counter">Paso {{ currentStep + 1 }} de {{ steps.length }}</div>
 
-    <button type="button" class="btn-next" (click)="nextStep()">
+    <button type="button" class="btn-next" (click)="nextStep()" [disabled]="isLoading">
+      <span *ngIf="isLoading" class="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span>
       {{ currentStep === steps.length - 1 ? 'Calcular Bono' : 'Siguiente' }}
       <i class="fas" [ngClass]="{'fa-arrow-right': currentStep < steps.length - 1, 'fa-calculator': currentStep === steps.length - 1}"></i>
     </button>

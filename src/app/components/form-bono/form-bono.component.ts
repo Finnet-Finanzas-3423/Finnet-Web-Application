@@ -1,7 +1,11 @@
 import { Component, OnInit, Output, EventEmitter } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import {NgClass, NgForOf, NgIf} from '@angular/common';
+import { NgClass, NgForOf, NgIf } from '@angular/common';
 import { trigger, transition, style, animate } from '@angular/animations';
+import { Router } from '@angular/router';
+import { BonoModel } from '../../shared/models/bono.model';
+import { Moneda, Periodicidad, PlazoGracia, TipoTasa, MetodoAmortizacion } from '../../shared/models/bono.model';
+import { BonoService } from '../../shared/services/bono.service';
 
 @Component({
   selector: 'app-form-bono',
@@ -28,11 +32,13 @@ import { trigger, transition, style, animate } from '@angular/animations';
 })
 export class FormBonoComponent implements OnInit {
   @Output() volverEvent = new EventEmitter<void>();
+  @Output() bonoCreado = new EventEmitter<number>();
 
   bonoForm!: FormGroup;
   currentStep = 0;
   submitted = false;
   showMonedaDropdown = false;
+  isLoading = false;
 
   // Definición de pasos
   steps = [
@@ -44,27 +50,31 @@ export class FormBonoComponent implements OnInit {
     { title: 'Resumen', icon: 'fa-clipboard-check', isValid: false }
   ];
 
-  // Campos necesarios para el formulario
-  monedas: string[] = ['PEN', 'USD', 'EUR', 'GBP', 'JPY', 'CNY', 'INR', 'AUD', 'CAD', 'CHF', 'NZD', 'RUB', 'ZAR', 'BRL', 'MXN', 'ARS', 'CLP', 'COP', 'VEF', 'UYU'];
+  monedas: Moneda[] = ['PEN', 'USD', 'EUR', 'GBP'];
 
-  frecuencias: string[] = [
+  frecuencias: Periodicidad[] = [
     'ANUAL', 'SEMESTRAL', 'CUATRIMESTRAL', 'TRIMESTRAL', 'BIMESTRAL',
     'MENSUAL', 'QUINCENAL', 'SEMANAL', 'DIARIA'
   ];
 
-  capitalizaciones: string[] = [
+  capitalizaciones: Periodicidad[] = [
     'ANUAL', 'SEMESTRAL', 'CUATRIMESTRAL', 'TRIMESTRAL', 'BIMESTRAL',
     'MENSUAL', 'QUINCENAL', 'SEMANAL', 'DIARIA'
   ];
 
-  metodosAmortizacion: string[] = ['FRANCES', 'ALEMAN', 'AMERICANO'];
-  metodosAmortizacionDisponibles: string[] = ['FRANCES'];
-  plazosGracia: string[] = ['NINGUNO', 'PARCIAL', 'TOTAL'];
+  metodosAmortizacion: MetodoAmortizacion[] = ['FRANCES', 'ALEMAN', 'AMERICANO'];
+  metodosAmortizacionDisponibles: MetodoAmortizacion[] = ['FRANCES', 'ALEMAN', 'AMERICANO'];
+  plazosGracia: PlazoGracia[] = ['NINGUNO', 'PARCIAL', 'TOTAL'];
+  tiposTasa: TipoTasa[] = ['EFECTIVA', 'NOMINAL'];
 
   // Resumen del bono para mostrar en el último paso
   bonoResumen: any = {};
 
-  constructor(private formBuilder: FormBuilder) { }
+  constructor(
+    private formBuilder: FormBuilder,
+    private bonoService: BonoService,
+    private router: Router,
+  ) { }
 
   ngOnInit(): void {
     this.inicializarFormulario();
@@ -79,21 +89,26 @@ export class FormBonoComponent implements OnInit {
       nombre: ['', Validators.required],
       descripcion: [''],
       moneda: ['PEN'],
-      valorNominal: ['', Validators.required],
-      valorComercial: [''],
-      tasaCupon: ['', Validators.required],
-      tipoTasa: ['EFECTIVA'],
-      capitalizacion: ['ANUAL'],
+      valorNominal: ['', [Validators.required, Validators.min(0)]],
+      valorComercial: ['', Validators.min(0)],
+      tasaCupon: ['', [Validators.required, Validators.min(0)]],
+      tipoTasaCupon: ['EFECTIVA'],
+      capitalizacionCupon: ['ANUAL'],
       frecuenciaPago: ['ANUAL'],
-      plazoAnios: ['', Validators.required],
+      tasaMercado: ['', Validators.min(0)],
+      tipoTasaMercado: ['EFECTIVA'],
+      capitalizacionMercado: ['ANUAL'],
+      plazoAnios: ['', [Validators.required, Validators.min(1)]],
       metodoAmortizacion: ['FRANCES'],
-      tasaMercado: [''],
-      primaRedencion: [''],
-      estructuracion: [''],
-      colocacion: [''],
-      flotacion: [''],
-      cavali: [''],
+      primaRedencion: ['0', Validators.min(0)],
+      estructuracion: ['0', Validators.min(0)],
+      colocacion: ['0', Validators.min(0)],
+      flotacion: ['0', Validators.min(0)],
+      cavali: ['0', Validators.min(0)],
       plazoGracia: ['NINGUNO'],
+      duracionPlazoGracia: ['0', Validators.min(0)],
+      comision: ['0', Validators.min(0)],
+      gastosAdministrativos: ['0', Validators.min(0)],
       userId: [1] // Este valor se asignaría dinámicamente desde el servicio de autenticación
     });
 
@@ -120,6 +135,9 @@ export class FormBonoComponent implements OnInit {
         break
       case 4:
         this.steps[4].isValid = true
+        break
+      case 5:
+        this.steps[5].isValid = true // El último paso siempre es válido para permitir calcular
         break
     }
   }
@@ -202,31 +220,39 @@ export class FormBonoComponent implements OnInit {
       },
       valoresYPlazos: {
         valorNominal: `${formValues.valorNominal} ${formValues.moneda}`,
-        valorComercial: `${formValues.valorComercial} ${formValues.moneda}`,
+        valorComercial: formValues.valorComercial ? `${formValues.valorComercial} ${formValues.moneda}` : 'No especificado',
         plazoAnios: `${formValues.plazoAnios} años`,
-        plazoGracia: formValues.plazoGracia
+        plazoGracia: formValues.plazoGracia,
+        duracionPlazoGracia: formValues.duracionPlazoGracia ? `${formValues.duracionPlazoGracia} periodos` : 'No aplicable'
       },
       tasasEIntereses: {
         tasaCupon: `${formValues.tasaCupon}%`,
-        tipoTasa: formValues.tipoTasa,
-        tasaMercado: `${formValues.tasaMercado}%`,
+        tipoTasaCupon: formValues.tipoTasaCupon,
+        capitalizacionCupon: formValues.capitalizacionCupon,
+        tasaMercado: formValues.tasaMercado ? `${formValues.tasaMercado}%` : 'No especificado',
+        tipoTasaMercado: formValues.tipoTasaMercado,
+        capitalizacionMercado: formValues.capitalizacionMercado,
         primaRedencion: formValues.primaRedencion ? `${formValues.primaRedencion}%` : 'No especificado'
       },
       frecuenciasYMetodo: {
         frecuenciaPago: formValues.frecuenciaPago,
-        capitalizacion: formValues.capitalizacion,
         metodoAmortizacion: formValues.metodoAmortizacion
       },
       costosAdicionales: {
+        comision: formValues.comision ? `${formValues.comision}%` : 'No especificado',
+        gastosAdministrativos: formValues.gastosAdministrativos ? `${formValues.gastosAdministrativos}%` : 'No especificado',
         estructuracion: formValues.estructuracion ? `${formValues.estructuracion}%` : 'No especificado',
         colocacion: formValues.colocacion ? `${formValues.colocacion}%` : 'No especificado',
         flotacion: formValues.flotacion ? `${formValues.flotacion}%` : 'No especificado',
         cavali: formValues.cavali ? `${formValues.cavali}%` : 'No especificado'
       }
     };
+
+    // Asegurar que el último paso sea válido
+    this.steps[5].isValid = true;
   }
 
-  seleccionarMoneda(moneda: string): void {
+  seleccionarMoneda(moneda: Moneda): void {
     this.bonoForm.get('moneda')?.setValue(moneda);
     this.showMonedaDropdown = false;
   }
@@ -235,30 +261,20 @@ export class FormBonoComponent implements OnInit {
     this.showMonedaDropdown = !this.showMonedaDropdown;
   }
 
-  seleccionarTipoTasa(tipoTasa: string): void {
-    this.bonoForm.get('tipoTasa')?.setValue(tipoTasa);
+  seleccionarTipoTasa(tipoTasa: TipoTasa, campo: 'tipoTasaCupon' | 'tipoTasaMercado'): void {
+    this.bonoForm.get(campo)?.setValue(tipoTasa);
   }
 
-  seleccionarFrecuencia(frecuencia: string): void {
-    this.bonoForm.get('frecuenciaPago')?.setValue(frecuencia);
-  }
+  seleccionarPlazoGracia(plazo: PlazoGracia): void {
+    this.bonoForm.get('plazoGracia')?.setValue(plazo);
 
-  seleccionarCapitalizacion(capitalizacion: string): void {
-    this.bonoForm.get('capitalizacion')?.setValue(capitalizacion);
-  }
-
-  seleccionarMetodoAmortizacion(metodo: string): void {
-    // Solo permitir seleccionar métodos disponibles
-    if (this.metodosAmortizacionDisponibles.includes(metodo)) {
-      this.bonoForm.get('metodoAmortizacion')?.setValue(metodo);
+    // Si se selecciona NINGUNO, resetear la duración del plazo de gracia
+    if (plazo === 'NINGUNO') {
+      this.bonoForm.get('duracionPlazoGracia')?.setValue(0);
     }
   }
 
-  seleccionarPlazoGracia(plazo: string): void {
-    this.bonoForm.get('plazoGracia')?.setValue(plazo);
-  }
-
-  isMetodoAmortizacionDisponible(metodo: string): boolean {
+  isMetodoAmortizacionDisponible(metodo: MetodoAmortizacion): boolean {
     return this.metodosAmortizacionDisponibles.includes(metodo);
   }
 
@@ -268,11 +284,21 @@ export class FormBonoComponent implements OnInit {
     this.bonoForm.reset();
     this.bonoForm.patchValue({
       moneda: 'PEN',
-      tipoTasa: 'EFECTIVA',
+      tipoTasaCupon: 'EFECTIVA',
+      tipoTasaMercado: 'EFECTIVA',
       frecuenciaPago: 'ANUAL',
-      capitalizacion: 'ANUAL',
+      capitalizacionCupon: 'ANUAL',
+      capitalizacionMercado: 'ANUAL',
       metodoAmortizacion: 'FRANCES',
       plazoGracia: 'NINGUNO',
+      duracionPlazoGracia: 0,
+      primaRedencion: 0,
+      estructuracion: 0,
+      colocacion: 0,
+      flotacion: 0,
+      cavali: 0,
+      comision: 0,
+      gastosAdministrativos: 0,
       userId: 1
     });
 
@@ -295,18 +321,18 @@ export class FormBonoComponent implements OnInit {
   }
 
   calcularBono(): void {
+    console.log('Función calcularBono ejecutada');
     this.submitted = true;
 
     if (this.bonoForm.invalid) {
+      console.error('Formulario inválido:', this.bonoForm.errors);
+
       // Identificar el primer paso con errores y navegar a él
       if (!this.bonoForm.get('nombre')!.valid) {
         this.currentStep = 0;
-      } else if (!this.bonoForm.get('valorNominal')!.valid ||
-        !this.bonoForm.get('valorComercial')!.valid ||
-        !this.bonoForm.get('plazoAnios')!.valid) {
+      } else if (!this.bonoForm.get('valorNominal')!.valid || !this.bonoForm.get('plazoAnios')!.valid) {
         this.currentStep = 1;
-      } else if (!this.bonoForm.get('tasaCupon')!.valid ||
-        !this.bonoForm.get('tasaMercado')!.valid) {
+      } else if (!this.bonoForm.get('tasaCupon')!.valid) {
         this.currentStep = 2;
       }
 
@@ -314,11 +340,73 @@ export class FormBonoComponent implements OnInit {
       return;
     }
 
-    console.log('Datos del formulario:', this.bonoForm.value);
-    // Implementar lógica de cálculo o enviar datos al servicio correspondiente
-    // this.bonoService.calcularBono(this.bonoForm.value).subscribe(...)
+    // Crear objeto de bono basado en el formulario
+    const formValues = this.bonoForm.value;
 
-    // Aquí se mostraría un mensaje de éxito o se navegaría a una página de resultados
+    // Calcular fechas basadas en plazo en años
+    const fechaEmision = new Date();
+    const fechaVencimiento = new Date();
+    fechaVencimiento.setFullYear(fechaEmision.getFullYear() + Number(formValues.plazoAnios));
+
+    const bono: BonoModel = {
+      nombre: formValues.nombre,
+      descripcion: formValues.descripcion || '',
+      userId: formValues.userId,
+      valorNominal: Number(formValues.valorNominal),
+      valorComercial: Number(formValues.valorComercial) || Number(formValues.valorNominal),
+      fechaEmision: fechaEmision,
+      fechaVencimiento: fechaVencimiento,
+      tasaCupon: Number(formValues.tasaCupon),
+      tipoTasaCupon: formValues.tipoTasaCupon as TipoTasa,
+      capitalizacionCupon: formValues.capitalizacionCupon as Periodicidad,
+      tipoTasaMercado: formValues.tipoTasaMercado as TipoTasa,
+      tasaMercado: Number(formValues.tasaMercado) || Number(formValues.tasaCupon),
+      capitalizacionMercado: formValues.capitalizacionMercado as Periodicidad,
+      frecuenciaPago: formValues.frecuenciaPago as Periodicidad,
+      comision: Number(formValues.comision) || 0,
+      gastosAdministrativos: Number(formValues.gastosAdministrativos) || 0,
+      plazoGracia: formValues.plazoGracia as PlazoGracia,
+      duracionPlazoGracia: Number(formValues.duracionPlazoGracia) || 0,
+      moneda: formValues.moneda as Moneda,
+      metodoAmortizacion: formValues.metodoAmortizacion as MetodoAmortizacion,
+      primaRedencion: Number(formValues.primaRedencion) || 0,
+      estructuracion: Number(formValues.estructuracion) || 0,
+      colocacion: Number(formValues.colocacion) || 0,
+      flotacion: Number(formValues.flotacion) || 0,
+      cavali: Number(formValues.cavali) || 0
+    };
+
+    console.log('Enviando datos del bono:', JSON.stringify(bono));
+    this.isLoading = true;
+
+    // Intentar crear el bono
+    this.bonoService.createBono(bono).subscribe({
+      next: (response) => {
+        this.isLoading = false;
+        console.log('Bono creado exitosamente:', response);
+
+        // Navegación después de crear el bono
+        if (response) {
+          const bonoId = response.id;
+          if (bonoId) {
+            console.log('Navegando a detalles del bono con ID:', bonoId);
+            this.bonoCreado.emit(bonoId);
+            this.router.navigate(['/bonos', bonoId]);
+          } else {
+            console.log('Navegando a lista de bonos (sin ID específico)');
+            this.bonoCreado.emit();
+            this.router.navigate(['/bonos']);
+          }
+        } else {
+          console.log('Navegando a lista de bonos (respuesta vacía)');
+          this.router.navigate(['/bonos']);
+        }
+      },
+      error: (error) => {
+        this.isLoading = false;
+        console.error('Error al crear el bono:', error);
+      }
+    });
   }
 
   // Helpers para mostrar la UI
@@ -355,15 +443,16 @@ export class FormBonoComponent implements OnInit {
     if (this.steps[stepIndex].isValid) return 'completed';
     return 'pending';
   }
+
   mostrarMonedaDropdown(): boolean {
     const monedaActual = this.bonoForm.get('moneda')?.value;
-    return this.monedas.slice(7).includes(monedaActual);
+    return this.monedas.slice(2).includes(monedaActual);
   }
 
   getTextoBotonMoneda(): string {
     const monedaActual = this.bonoForm.get('moneda')?.value;
 
-    if (this.monedas.slice(7).includes(monedaActual)) {
+    if (this.monedas.slice(2).includes(monedaActual)) {
       return monedaActual;
     }
 
