@@ -1,0 +1,475 @@
+<div class="wizard-container">
+<div class="back-button-wrapper">
+<button type="button" class="back-button" (click)="volver()">
+<i class="fas fa-arrow-left"></i> Volver
+  </button>
+  </div>
+
+  <h2 class="wizard-title">Creación de Bono</h2>
+
+<!-- Progress Indicator -->
+<div class="progress-container">
+<div class="progress-bar">
+<div class="progress-fill" [style.width]="((currentStep + 1) / steps.length) * 100 + '%'"></div>
+  </div>
+
+  <div class="step-indicators">
+<div *ngFor="let step of steps; let i = index"
+class="step-indicator"
+  [class]="getStepStatusClass(i)"
+  [class.clickable]="isStepClickable(i)"
+(click)="isStepClickable(i) && goToStep(i)">
+<div class="step-number">
+<i *ngIf="steps[i].isValid" class="fas fa-check"></i>
+<span *ngIf="!steps[i].isValid">{{i + 1}}</span>
+</div>
+<div class="step-title">{{step.title}}</div>
+<i class="step-icon fas {{step.icon}}"></i>
+  </div>
+  </div>
+  </div>
+
+  <!-- Form content -->
+  <div class="wizard-content">
+<form [formGroup]="bonoForm">
+
+  <!-- Step 1: Información Principal -->
+<div *ngIf="currentStep === 0" @stepAnimation class="form-step">
+<div class="step-header">
+<div class="step-icon-container">
+<i class="fas fa-file-signature"></i>
+  </div>
+  <h3 class="step-title">Información Principal</h3>
+</div>
+
+<div class="form-group">
+  <label for="nombre">Nombre del bono <span class="required">*</span></label>
+<div class="input-with-icon">
+<i class="fas fa-file-signature icon-left"></i>
+  <input type="text" id="nombre" formControlName="nombre" placeholder="Ingrese el nombre del bono" class="form-control with-icon">
+</div>
+<div *ngIf="f['nombre'].touched && f['nombre'].errors" class="error-text">
+<div *ngIf="f['nombre'].errors['required']">El nombre del bono es obligatorio</div>
+</div>
+</div>
+
+<div class="form-group">
+  <label for="descripcion">Descripción</label>
+  <div class="input-with-icon">
+<i class="fas fa-align-left icon-left"></i>
+  <input type="text" id="descripcion" formControlName="descripcion" placeholder="Descripción corta" class="form-control with-icon">
+  </div>
+  </div>
+
+  <div class="form-group">
+  <label>Moneda <span class="required">*</span></label>
+<div class="currency-selector">
+<ng-container *ngFor="let moneda of monedas.slice(0,7)">
+<button type="button" [class.active]="bonoForm.get('moneda')?.value === moneda"
+(click)="seleccionarMoneda(moneda)" class="btn-moneda">
+  {{ moneda }}
+</button>
+</ng-container>
+<div class="dropdown-container" *ngIf="monedas.length > 7">
+<button type="button" class="btn-moneda dropdown-toggle" (click)="toggleMonedaDropdown()">
+  Más <i class="fas fa-chevron-down"></i>
+  </button>
+  <div class="dropdown-menu" *ngIf="showMonedaDropdown">
+<ng-container *ngFor="let moneda of monedas.slice(7)">
+<button type="button" class="dropdown-item" (click)="seleccionarMoneda(moneda)">{{ moneda }}</button>
+</ng-container>
+</div>
+</div>
+</div>
+</div>
+
+<div class="step-info-card">
+<i class="fas fa-info-circle"></i>
+  <p>Ingresa la información básica de tu bono. El nombre ayudará a identificarlo en tus proyectos.</p>
+</div>
+</div>
+
+<!-- Step 2: Valores y Plazos -->
+<div *ngIf="currentStep === 1" @stepAnimation class="form-step">
+<div class="step-header">
+<div class="step-icon-container">
+<i class="fas fa-coins"></i>
+  </div>
+  <h3 class="step-title">Valores y Plazos</h3>
+</div>
+
+<div class="form-row">
+<div class="form-group">
+  <label for="valorNominal">Valor Nominal <span class="required">*</span></label>
+<div class="input-with-icon">
+<i class="fas fa-coins icon-left"></i>
+  <input type="number" id="valorNominal" formControlName="valorNominal" placeholder="Valor nominal" class="form-control with-icon">
+<span class="input-suffix">{{ bonoForm.get('moneda')?.value }}</span>
+</div>
+<div *ngIf="f['valorNominal'].touched && f['valorNominal'].errors" class="error-text">
+<div *ngIf="f['valorNominal'].errors['required']">El valor nominal es obligatorio</div>
+</div>
+</div>
+
+<div class="form-group">
+  <label for="valorComercial">Valor Comercial <span class="required">*</span></label>
+<div class="input-with-icon">
+<i class="fas fa-shopping-cart icon-left"></i>
+  <input type="number" id="valorComercial" formControlName="valorComercial" placeholder="Valor comercial" class="form-control with-icon">
+<span class="input-suffix">{{ bonoForm.get('moneda')?.value }}</span>
+</div>
+<div *ngIf="f['valorComercial'].touched && f['valorComercial'].errors" class="error-text">
+<div *ngIf="f['valorComercial'].errors['required']">El valor comercial es obligatorio</div>
+</div>
+</div>
+</div>
+
+<div class="form-row">
+<div class="form-group">
+  <label for="plazoAnios">Plazo <span class="required">*</span></label>
+<div class="input-with-icon">
+<i class="fas fa-calendar-alt icon-left"></i>
+  <input type="number" id="plazoAnios" formControlName="plazoAnios" placeholder="Plazo en años" class="form-control with-icon">
+<span class="input-suffix">años</span>
+</div>
+<div *ngIf="f['plazoAnios'].touched && f['plazoAnios'].errors" class="error-text">
+<div *ngIf="f['plazoAnios'].errors['required']">El plazo es obligatorio</div>
+</div>
+</div>
+
+<div class="form-group">
+  <label>Plazo de Gracia</label>
+<div class="option-selector">
+<button type="button" *ngFor="let plazo of plazosGracia"
+  [class.active]="bonoForm.get('plazoGracia')?.value === plazo"
+(click)="seleccionarPlazoGracia(plazo)" class="btn-option">
+  {{ plazo }}
+</button>
+</div>
+</div>
+</div>
+
+<div class="step-info-card">
+<i class="fas fa-lightbulb"></i>
+  <p>El valor nominal es el valor facial del bono, mientras que el valor comercial es el precio actual de mercado.</p>
+</div>
+</div>
+
+<!-- Step 3: Tasas e Intereses -->
+<div *ngIf="currentStep === 2" @stepAnimation class="form-step">
+<div class="step-header">
+<div class="step-icon-container">
+<i class="fas fa-percentage"></i>
+  </div>
+  <h3 class="step-title">Tasas e Intereses</h3>
+</div>
+
+<div class="form-row">
+<div class="form-group flex-1">
+  <label for="tasaCupon">Tasa Cupón <span class="required">*</span></label>
+<div class="input-with-icon">
+<i class="fas fa-percentage icon-left"></i>
+  <input type="number" id="tasaCupon" formControlName="tasaCupon" placeholder="Tasa de cupón" class="form-control with-icon">
+<span class="input-suffix">%</span>
+</div>
+<div *ngIf="f['tasaCupon'].touched && f['tasaCupon'].errors" class="error-text">
+<div *ngIf="f['tasaCupon'].errors['required']">La tasa de cupón es obligatoria</div>
+</div>
+</div>
+
+<div class="form-group flex-1">
+  <label for="tasaMercado">Tasa de Mercado <span class="required">*</span></label>
+<div class="input-with-icon">
+<i class="fas fa-chart-line icon-left"></i>
+  <input type="number" id="tasaMercado" formControlName="tasaMercado" placeholder="Tasa de mercado" class="form-control with-icon">
+<span class="input-suffix">%</span>
+</div>
+<div *ngIf="f['tasaMercado'].touched && f['tasaMercado'].errors" class="error-text">
+<div *ngIf="f['tasaMercado'].errors['required']">La tasa de mercado es obligatoria</div>
+</div>
+</div>
+</div>
+
+<div class="form-row">
+<div class="form-group flex-1">
+  <label for="primaRedencion">Prima de Redención</label>
+<div class="input-with-icon">
+<i class="fas fa-award icon-left"></i>
+  <input type="number" id="primaRedencion" formControlName="primaRedencion" placeholder="Prima de redención" class="form-control with-icon">
+<span class="input-suffix">%</span>
+  </div>
+  </div>
+
+  <div class="form-group flex-1">
+  <label>Tipo de Tasa</label>
+<div class="toggle-switch">
+<button type="button" [class.active]="bonoForm.get('tipoTasa')?.value === 'EFECTIVA'"
+(click)="seleccionarTipoTasa('EFECTIVA')" class="toggle-btn left">
+<i class="fas fa-check-circle"></i> EFECTIVA
+  </button>
+  <button type="button" [class.active]="bonoForm.get('tipoTasa')?.value === 'NOMINAL'"
+(click)="seleccionarTipoTasa('NOMINAL')" class="toggle-btn right">
+<i class="fas fa-percentage"></i> NOMINAL
+  </button>
+  </div>
+  </div>
+  </div>
+
+  <div class="step-info-card">
+<i class="fas fa-info-circle"></i>
+  <p>La tasa cupón define los pagos periódicos, mientras que la tasa de mercado determina el rendimiento esperado.</p>
+</div>
+</div>
+
+<!-- Step 4: Frecuencias y Método -->
+<div *ngIf="currentStep === 3" @stepAnimation class="form-step">
+<div class="step-header">
+<div class="step-icon-container">
+<i class="fas fa-sliders-h"></i>
+  </div>
+  <h3 class="step-title">Frecuencias y Método</h3>
+</div>
+
+<div class="form-group">
+  <label>Método de Amortización</label>
+<div class="method-selector">
+<div *ngFor="let metodo of metodosAmortizacion" class="method-option">
+<input type="radio"
+  [id]="'metodo-' + metodo"
+  [value]="metodo"
+formControlName="metodoAmortizacion"
+  [checked]="bonoForm.get('metodoAmortizacion')?.value === metodo"
+  [disabled]="!isMetodoAmortizacionDisponible(metodo)">
+  <label [for]="'metodo-' + metodo"
+class="method-card"
+  [class.active]="bonoForm.get('metodoAmortizacion')?.value === metodo"
+  [class.disabled]="!isMetodoAmortizacionDisponible(metodo)">
+<div class="method-icon">
+<i class="fas"
+  [ngClass]="{
+'fa-chart-line': metodo === 'FRANCES',
+  'fa-sort-amount-down': metodo === 'ALEMAN',
+  'fa-flag-usa': metodo === 'AMERICANO'
+}"></i>
+</div>
+<div class="method-name">{{ metodo }}</div>
+<div class="method-desc">
+  {{ metodo === 'FRANCES' ? 'Cuotas constantes' :
+  metodo === 'ALEMAN' ? 'Amortización constante' :
+    'Pago único al vencimiento' }}
+</div>
+<div class="method-badge" *ngIf="!isMetodoAmortizacionDisponible(metodo)">No disponible</div>
+</label>
+</div>
+</div>
+</div>
+
+<div class="form-row">
+<div class="form-group flex-1">
+  <label>Frecuencia de Pago</label>
+<div class="select-styled">
+<i class="fas fa-calendar-check icon-left"></i>
+  <select formControlName="frecuenciaPago" class="form-control with-icon">
+<option *ngFor="let frecuencia of frecuencias" [value]="frecuencia">{{ frecuencia }}</option>
+</select>
+<i class="fas fa-chevron-down icon-right"></i>
+  </div>
+  </div>
+
+  <div class="form-group flex-1">
+  <label>Capitalización</label>
+  <div class="select-styled">
+<i class="fas fa-sync icon-left"></i>
+  <select formControlName="capitalizacion" class="form-control with-icon">
+<option *ngFor="let capitalizacion of capitalizaciones" [value]="capitalizacion">{{ capitalizacion }}</option>
+</select>
+<i class="fas fa-chevron-down icon-right"></i>
+  </div>
+  </div>
+  </div>
+
+  <div class="step-info-card">
+<i class="fas fa-lightbulb"></i>
+  <p>El método de amortización determina cómo se distribuirán los pagos durante la vida del bono.</p>
+</div>
+</div>
+
+<!-- Step 5: Costos Adicionales -->
+<div *ngIf="currentStep === 4" @stepAnimation class="form-step">
+<div class="step-header">
+<div class="step-icon-container">
+<i class="fas fa-tags"></i>
+  </div>
+  <h3 class="step-title">Costos Adicionales <span class="optional-badge">Opcional</span></h3>
+</div>
+
+<div class="costs-grid">
+<div class="form-group">
+  <label for="estructuracion">Estructuración</label>
+  <div class="input-with-icon">
+<i class="fas fa-building icon-left"></i>
+  <input type="number" id="estructuracion" formControlName="estructuracion" placeholder="%" class="form-control with-icon">
+<span class="input-suffix">%</span>
+  </div>
+  </div>
+
+  <div class="form-group">
+  <label for="colocacion">Colocación</label>
+  <div class="input-with-icon">
+<i class="fas fa-hand-holding-usd icon-left"></i>
+  <input type="number" id="colocacion" formControlName="colocacion" placeholder="%" class="form-control with-icon">
+<span class="input-suffix">%</span>
+  </div>
+  </div>
+
+  <div class="form-group">
+  <label for="flotacion">Flotación</label>
+  <div class="input-with-icon">
+<i class="fas fa-life-ring icon-left"></i>
+  <input type="number" id="flotacion" formControlName="flotacion" placeholder="%" class="form-control with-icon">
+<span class="input-suffix">%</span>
+  </div>
+  </div>
+
+  <div class="form-group">
+  <label for="cavali">Cavali</label>
+  <div class="input-with-icon">
+<i class="fas fa-file-invoice-dollar icon-left"></i>
+  <input type="number" id="cavali" formControlName="cavali" placeholder="%" class="form-control with-icon">
+<span class="input-suffix">%</span>
+  </div>
+  </div>
+  </div>
+
+  <div class="step-info-card info-type-secondary">
+<i class="fas fa-info-circle"></i>
+  <p>Los costos adicionales son opcionales y se utilizan para calcular el costo efectivo anual del bono.</p>
+</div>
+</div>
+
+<!-- Step 6: Resumen -->
+<div *ngIf="currentStep === 5" @stepAnimation class="form-step">
+<div class="step-header">
+<div class="step-icon-container">
+<i class="fas fa-clipboard-check"></i>
+  </div>
+  <h3 class="step-title">Resumen del Bono</h3>
+</div>
+
+<div class="summary-container">
+<div class="summary-section">
+<h4><i class="fas fa-file-signature"></i> Información Principal</h4>
+<div class="summary-row">
+<div class="summary-label">Nombre:</div>
+<div class="summary-value">{{ bonoResumen.informacionPrincipal?.nombre }}</div>
+</div>
+<div class="summary-row">
+<div class="summary-label">Descripción:</div>
+<div class="summary-value">{{ bonoResumen.informacionPrincipal?.descripcion }}</div>
+</div>
+<div class="summary-row">
+<div class="summary-label">Moneda:</div>
+<div class="summary-value">{{ bonoResumen.informacionPrincipal?.moneda }}</div>
+</div>
+</div>
+
+<div class="summary-section">
+<h4><i class="fas fa-coins"></i> Valores y Plazos</h4>
+<div class="summary-row">
+<div class="summary-label">Valor Nominal:</div>
+<div class="summary-value">{{ bonoResumen.valoresYPlazos?.valorNominal }}</div>
+</div>
+<div class="summary-row">
+<div class="summary-label">Valor Comercial:</div>
+<div class="summary-value">{{ bonoResumen.valoresYPlazos?.valorComercial }}</div>
+</div>
+<div class="summary-row">
+<div class="summary-label">Plazo:</div>
+<div class="summary-value">{{ bonoResumen.valoresYPlazos?.plazoAnios }}</div>
+</div>
+<div class="summary-row">
+<div class="summary-label">Plazo de Gracia:</div>
+<div class="summary-value">{{ bonoResumen.valoresYPlazos?.plazoGracia }}</div>
+</div>
+</div>
+
+<div class="summary-section">
+<h4><i class="fas fa-percentage"></i> Tasas e Intereses</h4>
+<div class="summary-row">
+<div class="summary-label">Tasa Cupón:</div>
+<div class="summary-value">{{ bonoResumen.tasasEIntereses?.tasaCupon }}</div>
+</div>
+<div class="summary-row">
+<div class="summary-label">Tipo de Tasa:</div>
+<div class="summary-value">{{ bonoResumen.tasasEIntereses?.tipoTasa }}</div>
+</div>
+<div class="summary-row">
+<div class="summary-label">Tasa de Mercado:</div>
+<div class="summary-value">{{ bonoResumen.tasasEIntereses?.tasaMercado }}</div>
+</div>
+<div class="summary-row">
+<div class="summary-label">Prima de Redención:</div>
+<div class="summary-value">{{ bonoResumen.tasasEIntereses?.primaRedencion }}</div>
+</div>
+</div>
+
+<div class="summary-section">
+<h4><i class="fas fa-sliders-h"></i> Frecuencias y Método</h4>
+<div class="summary-row">
+<div class="summary-label">Frecuencia de Pago:</div>
+<div class="summary-value">{{ bonoResumen.frecuenciasYMetodo?.frecuenciaPago }}</div>
+</div>
+<div class="summary-row">
+<div class="summary-label">Capitalización:</div>
+<div class="summary-value">{{ bonoResumen.frecuenciasYMetodo?.capitalizacion }}</div>
+</div>
+<div class="summary-row">
+<div class="summary-label">Método de Amortización:</div>
+<div class="summary-value">{{ bonoResumen.frecuenciasYMetodo?.metodoAmortizacion }}</div>
+</div>
+</div>
+
+<div class="summary-section">
+<h4><i class="fas fa-tags"></i> Costos Adicionales</h4>
+<div class="summary-row">
+<div class="summary-label">Estructuración:</div>
+<div class="summary-value">{{ bonoResumen.costosAdicionales?.estructuracion }}</div>
+</div>
+<div class="summary-row">
+<div class="summary-label">Colocación:</div>
+<div class="summary-value">{{ bonoResumen.costosAdicionales?.colocacion }}</div>
+</div>
+<div class="summary-row">
+<div class="summary-label">Flotación:</div>
+<div class="summary-value">{{ bonoResumen.costosAdicionales?.flotacion }}</div>
+</div>
+<div class="summary-row">
+<div class="summary-label">Cavali:</div>
+<div class="summary-value">{{ bonoResumen.costosAdicionales?.cavali }}</div>
+</div>
+</div>
+</div>
+
+<div class="step-info-card info-type-success">
+<i class="fas fa-check-circle"></i>
+  <p>¡Todo está listo! Revisa la información antes de calcular el bono.</p>
+</div>
+</div>
+</form>
+</div>
+
+<!-- Wizard navigation -->
+<div class="wizard-navigation">
+<button type="button" class="btn-prev" (click)="prevStep()">
+<i class="fas fa-arrow-left"></i>
+{{ currentStep === 0 ? 'Cancelar' : 'Anterior' }}
+</button>
+
+<div class="step-counter">Paso {{ currentStep + 1 }} de {{ steps.length }}</div>
+
+<button type="button" class="btn-next" (click)="nextStep()">
+  {{ currentStep === steps.length - 1 ? 'Calcular Bono' : 'Siguiente' }}
+<i class="fas" [ngClass]="{'fa-arrow-right': currentStep < steps.length - 1, 'fa-calculator': currentStep === steps.length - 1}"></i>
+  </button>
+  </div>
+  </div>

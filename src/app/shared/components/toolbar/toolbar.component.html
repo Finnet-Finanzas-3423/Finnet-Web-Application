@@ -1,1 +1,37 @@
-<p>toolbar works!</p>
+<div class="toolbar-container">
+  <div class="toolbar-content">
+    <div class="logo-container">
+      <a routerLink="/">
+        <span class="logo-text">FinNet</span>
+      </a>
+    </div>
+
+    <div class="navigation-links">
+      <a routerLink="/inicio" routerLinkActive="active" class="nav-link">Inicio</a>
+      <a routerLink="/proyectos-de-bonos" routerLinkActive="active" class="nav-link">Proyectos de Bonos</a>
+      <a routerLink="/resultados" routerLinkActive="active" class="nav-link">Resultados</a>
+      <a routerLink="/escenarios" routerLinkActive="active" class="nav-link">Escenarios</a>
+    </div>
+
+    <div class="toolbar-actions">
+      <button class="action-button search-btn">
+        <i class="fas fa-search"></i>
+      </button>
+      <button class="action-button notifications-btn">
+        <i class="fas fa-bell"></i>
+        <span class="notification-badge">2</span>
+      </button>
+
+      <div *ngIf="isLoading" class="loading-spinner">
+        <i class="fas fa-circle-notch fa-spin"></i>
+      </div>
+      <div *ngIf="!isLoading && userProfile" class="user-profile">
+        <div class="avatar">{{ userInitials }}</div>
+        <div class="user-menu-dropdown">
+          <span class="username">{{ userProfile.name }}</span>
+          <i class="fas fa-chevron-down"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

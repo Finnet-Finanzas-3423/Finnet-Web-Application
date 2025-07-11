@@ -1,0 +1,16 @@
+<div class="welcome-container" *ngIf="!showForm" [@pageAnimation]>
+  <div class="welcome-content">
+    <h1 class="welcome-title">Bienvenido a <span class="brand-highlight">FinNet</span></h1>
+    <p class="welcome-subtitle">Empieza a calcular en el sistema financiero más confiable del país</p>
+    <div class="welcome-action">
+      <button class="start-button" (click)="navigateToCalculator()">
+        <span>Empezar ahora</span>
+        <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="form-view" *ngIf="showForm" [@pageAnimation]>
+  <app-form-bono (volverEvent)="backToWelcome()"></app-form-bono>
+</div>
