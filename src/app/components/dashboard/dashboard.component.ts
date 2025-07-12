@@ -2,11 +2,10 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { BonoService } from '../../shared/services/bono.service';
 import { BonoModel } from '../../shared/models/bono.model';
 import Chart from 'chart.js/auto';
-import { ToolbarComponent } from '../../shared/components/toolbar/toolbar.component';
-import { FooterComponent } from '../../shared/components/footer/footer.component';
+import { BonoService } from '../../shared/services/bono.service';
+import { ExcelExportService } from '../../shared/services/excel-export.service';
 import {DeleteDialogComponent} from '../delete-dialog/delete-dialog.component';
 
 @Component({
@@ -21,16 +20,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   isLoading = true;
   error: string | null = null;
 
-  // Filter and sorting options
   filterOption = 'all';
   sortOption = 'fechaVencimiento';
   viewMode = 'grid';
 
-  // Charts
   tasaInteresChart: Chart | null = null;
   vencimientoChart: Chart | null = null;
 
-  // Delete modal
   showDeleteModal = false;
   bonoToDelete: BonoModel | null = null;
   isDeleting = false;
@@ -71,10 +67,71 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }).length;
   }
 
-  constructor(private bonoService: BonoService, private router: Router) {}
+  constructor(private bonoService: BonoService, private router: Router, private excelExportService: ExcelExportService) {}
 
   ngOnInit(): void {
     this.loadBonosByUser();
+  }
+
+  exportToExcel(bonoId: number | undefined, event: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
+
+    if (!bonoId) {
+      console.error('ID de bono no válido');
+      return;
+    }
+
+    const target = event.target as HTMLElement;
+    const button = target.closest('button');
+    if (button) {
+      button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      button.disabled = true;
+    }
+
+    this.bonoService.getBonoById(bonoId).subscribe({
+      next: (bono) => {
+        if (!bono) {
+          console.error('No se encontró el bono');
+          this.resetButton(button);
+          return;
+        }
+
+        this.bonoService.calculateBono(bonoId).subscribe({
+          next: (response) => {
+            try {
+              // Usar el servicio para exportar
+              this.excelExportService.exportBonoToExcel(bono, response);
+              this.resetButton(button);
+            } catch (error) {
+              console.error('Error al exportar a Excel:', error);
+              this.resetButton(button);
+              alert('Ocurrió un error al exportar los datos a Excel. Por favor, inténtelo nuevamente.');
+            }
+          },
+          error: (err) => {
+            console.error('Error al calcular detalles del bono:', err);
+            this.resetButton(button);
+            alert('No se pudieron obtener los detalles de cálculo del bono.');
+          }
+        });
+      },
+      error: (err) => {
+        console.error('Error al obtener datos del bono:', err);
+        this.resetButton(button);
+        alert('No se pudo obtener la información del bono.');
+      }
+    });
+  }
+
+  private resetButton(button: HTMLElement | null): void {
+    if (button) {
+      button.innerHTML = '<i class="fas fa-download"></i>';
+      if (button instanceof HTMLButtonElement) {
+        button.disabled = false;
+      }
+    }
   }
 
   ngOnDestroy(): void {
@@ -479,4 +536,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   hasProperty(obj: any, prop: string): boolean {
     return obj && Object.prototype.hasOwnProperty.call(obj, prop);
   }
+
+
 }

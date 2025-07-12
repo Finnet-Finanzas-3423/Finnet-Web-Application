@@ -185,7 +185,7 @@
             <button class="action-btn" (click)="bono.id !== undefined && editBono(bono.id, $event)">
               <i class="fas fa-edit"></i>
             </button>
-            <button class="action-btn">
+            <button class="action-btn" *ngIf="bono.id !== undefined" (click)="exportToExcel(bono.id, $event)">
               <i class="fas fa-download"></i>
             </button>
             <button class="action-btn delete" (click)="openDeleteModal(bono, $event)">
@@ -222,7 +222,7 @@
               <button class="action-btn" (click)="bono.id !== undefined && editBono(bono.id, $event)">
                 <i class="fas fa-edit"></i>
               </button>
-              <button class="action-btn">
+              <button class="action-btn" *ngIf="bono.id !== undefined" (click)="exportToExcel(bono.id, $event)">
                 <i class="fas fa-download"></i>
               </button>
               <button class="action-btn delete" (click)="openDeleteModal(bono, $event)">
