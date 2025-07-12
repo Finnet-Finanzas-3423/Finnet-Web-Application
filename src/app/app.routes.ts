@@ -5,7 +5,7 @@ import { authGuard } from './core/guards/auth.guard';
 import { hasBondosGuard } from './core/guards/has-bonos.guard';
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'home', pathMatch: 'full' },
+  { path: '', redirectTo: 'auth/sign-in', pathMatch: 'full' },
 
   {
     path: 'auth',
