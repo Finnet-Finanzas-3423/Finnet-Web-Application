@@ -387,7 +387,7 @@ export class FormBonoComponent implements OnInit {
   }
 
   volver(): void {
-    this.volverEvent.emit();
+    this.router.navigate(['/dashboard']);
   }
 
   calcularBono(): void {

@@ -1,12 +1,19 @@
 <div class="bono-detail-container">
   <!-- Header with back button -->
   <div class="detail-header">
+
+  <div class="left-side">
     <button class="back-button" (click)="goBack()">
       <i class="fas fa-arrow-left"></i> Volver
     </button>
     <h2 class="detail-title">{{ bono?.nombre || 'Detalle del Bono' }}</h2>
   </div>
-
+  <div class="right-side">
+    <button class="export-button" (click)="exportToExcel()" *ngIf="!isLoading && !error && bono">
+      <i class="fas fa-file-excel"></i> Exportar a Excel
+    </button>
+  </div>
+  </div>
   <!-- Loading indicator -->
   <div *ngIf="isLoading" class="loading-container">
     <div class="spinner"></div>
@@ -182,11 +189,11 @@
               <div class="card-body">
                 <div class="info-row">
                   <span class="info-key">Comisión:</span>
-                  <span class="info-value">{{ bono.comision }}%</span>
+                  <span class="info-value">{{ bono.comision | currency:bono.moneda }}</span>
                 </div>
                 <div class="info-row">
                   <span class="info-key">Gastos Administrativos:</span>
-                  <span class="info-value">{{ bono.gastosAdministrativos }}%</span>
+                  <span class="info-value">{{ bono.gastosAdministrativos | currency:bono.moneda }}</span>
                 </div>
                 <div class="info-row">
                   <span class="info-key">Estructuración:</span>
@@ -345,7 +352,7 @@
               <div class="indicator-desc">Valor inicial del bono</div>
             </div>
 
-            <!-- Nuevas tarjetas para TIR y TCEA -->
+            <!-- TIR y TCEA -->
             <div class="indicator-card">
               <div class="indicator-title">TIR</div>
               <div class="indicator-value">{{ tir?.toFixed(2) }}%</div>
@@ -358,6 +365,46 @@
               <div class="indicator-desc">Tasa de Costo Efectiva Anual</div>
             </div>
 
+            <!-- NUEVAS MÉTRICAS -->
+            <div class="indicator-card">
+              <div class="indicator-title">TREA</div>
+              <div class="indicator-value">{{ trea?.toFixed(2) }}%</div>
+              <div class="indicator-desc">Tasa de Rendimiento Efectiva Anual</div>
+            </div>
+
+            <div class="indicator-card">
+              <div class="indicator-title">Precio Máximo</div>
+              <div class="indicator-value">
+                {{ precioMaximo !== null && precioMaximo !== undefined ? (precioMaximo | currency:bono.moneda:'symbol':'1.2-2') : 'N/A' }}
+              </div>
+              <div class="indicator-desc">Precio máximo del bono</div>
+            </div>
+
+            <div class="indicator-card">
+              <div class="indicator-title">Duración</div>
+              <div class="indicator-value">
+                {{ duracion !== null && duracion !== undefined ? (duracion | number:'1.2-2') : 'N/A' }}
+              </div>
+              <div class="indicator-desc">Duración de Macaulay (años)</div>
+            </div>
+
+            <div class="indicator-card">
+              <div class="indicator-title">Duración Modificada</div>
+              <div class="indicator-value">
+                {{ duracionModificada !== null && duracionModificada !== undefined ? (duracionModificada | number:'1.4-4') : 'N/A' }}
+              </div>
+              <div class="indicator-desc">Sensibilidad del precio ante cambios en tasas</div>
+            </div>
+
+            <div class="indicator-card">
+              <div class="indicator-title">Convexidad</div>
+              <div class="indicator-value">
+                {{ convexidad !== null && convexidad !== undefined ? (convexidad | number:'1.4-4') : 'N/A' }}
+              </div>
+              <div class="indicator-desc">Curvatura de la relación precio-rendimiento</div>
+            </div>
+
+            <!-- Indicadores existentes -->
             <div class="indicator-card">
               <div class="indicator-title">Total Intereses</div>
               <div class="indicator-value">{{ totalInteres | currency:bono.moneda:'symbol':'1.2-2' }}</div>
