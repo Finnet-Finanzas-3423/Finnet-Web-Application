@@ -1,4 +1,3 @@
-<app-toolbar></app-toolbar>
 <div class="bono-detail-container">
   <!-- Header with back button -->
   <div class="detail-header">
@@ -79,11 +78,41 @@
       <!-- Tab Content -->
       <div class="tab-content">
         <!-- Summary Tab -->
+        <!-- Summary Tab -->
         <div *ngIf="activeTab === 'resumen'" class="tab-pane">
           <h3>Resumen del Bono</h3>
+
+          <!-- Datos Principales del Bono - Destacados -->
+          <div class="bono-highlight-card">
+            <div class="highlight-item">
+              <div class="highlight-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+              <div class="highlight-value">{{ valorNominal | currency:bono.moneda }}</div>
+              <div class="highlight-label">Valor Nominal</div>
+            </div>
+            <div class="highlight-item">
+              <div class="highlight-icon"><i class="fas fa-percentage"></i></div>
+              <div class="highlight-value">{{ bono.tasaCupon }}%</div>
+              <div class="highlight-label">Tasa Cupón</div>
+            </div>
+            <div class="highlight-item">
+              <div class="highlight-icon"><i class="fas fa-chart-pie"></i></div>
+              <div class="highlight-value">{{ totalInteres | currency:bono.moneda }}</div>
+              <div class="highlight-label">Total Intereses</div>
+            </div>
+            <div class="highlight-item">
+              <div class="highlight-icon"><i class="fas fa-calendar-alt"></i></div>
+              <div class="highlight-value">{{ numeroPeriodos }}</div>
+              <div class="highlight-label">Periodos</div>
+            </div>
+          </div>
+
+          <!-- Grid de Información Detallada -->
           <div class="summary-grid">
+            <!-- Información General -->
             <div class="summary-card">
-              <div class="card-header">Información General</div>
+              <div class="card-header">
+                <i class="fas fa-info-circle"></i> Información General
+              </div>
               <div class="card-body">
                 <div class="info-row">
                   <span class="info-key">Nombre:</span>
@@ -98,14 +127,120 @@
                   <span class="info-value">{{ bono.moneda }}</span>
                 </div>
                 <div class="info-row">
-                  <span class="info-key">Método:</span>
+                  <span class="info-key">Método Amortización:</span>
                   <span class="info-value">{{ bono.metodoAmortizacion }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-key">Emisión:</span>
+                  <span class="info-value">{{ bono.fechaEmision | date:'dd/MM/yyyy' }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-key">Vencimiento:</span>
+                  <span class="info-value">{{ bono.fechaVencimiento | date:'dd/MM/yyyy' }}</span>
                 </div>
               </div>
             </div>
 
+            <!-- Tasas y Capitalizaciones -->
             <div class="summary-card">
-              <div class="card-header">Resultados Principales</div>
+              <div class="card-header">
+                <i class="fas fa-chart-line"></i> Tasas y Capitalizaciones
+              </div>
+              <div class="card-body">
+                <div class="info-row">
+                  <span class="info-key">Tasa Cupón:</span>
+                  <span class="info-value">{{ bono.tasaCupon }}%</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-key">Tipo Tasa Cupón:</span>
+                  <span class="info-value">{{ bono.tipoTasaCupon }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-key">Capitalización Cupón:</span>
+                  <span class="info-value">{{ bono.capitalizacionCupon }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-key">Tasa Mercado:</span>
+                  <span class="info-value">{{ bono.tasaMercado }}%</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-key">Tipo Tasa Mercado:</span>
+                  <span class="info-value">{{ bono.tipoTasaMercado }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-key">Capitalización Mercado:</span>
+                  <span class="info-value">{{ bono.capitalizacionMercado }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Costos y Gastos -->
+            <div class="summary-card">
+              <div class="card-header">
+                <i class="fas fa-coins"></i> Costos y Gastos
+              </div>
+              <div class="card-body">
+                <div class="info-row">
+                  <span class="info-key">Comisión:</span>
+                  <span class="info-value">{{ bono.comision }}%</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-key">Gastos Administrativos:</span>
+                  <span class="info-value">{{ bono.gastosAdministrativos }}%</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-key">Estructuración:</span>
+                  <span class="info-value">{{ bono.estructuracion }}%</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-key">Colocación:</span>
+                  <span class="info-value">{{ bono.colocacion }}%</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-key">Flotación:</span>
+                  <span class="info-value">{{ bono.flotacion }}%</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-key">Cavali:</span>
+                  <span class="info-value">{{ bono.cavali }}%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Datos Adicionales -->
+            <div class="summary-card">
+              <div class="card-header">
+                <i class="fas fa-sliders-h"></i> Condiciones Adicionales
+              </div>
+              <div class="card-body">
+                <div class="info-row">
+                  <span class="info-key">Valor Comercial:</span>
+                  <span class="info-value">{{ bono.valorComercial | currency:bono.moneda }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-key">Prima de Redención:</span>
+                  <span class="info-value">{{ bono.primaRedencion }}%</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-key">Frecuencia de Pago:</span>
+                  <span class="info-value">{{ bono.frecuenciaPago }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-key">Plazo de Gracia:</span>
+                  <span class="info-value">{{ bono.plazoGracia }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-key">Duración Gracia:</span>
+                  <span class="info-value">{{ bono.duracionPlazoGracia }} periodos</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Resultados Financieros -->
+            <div class="summary-card accent">
+              <div class="card-header">
+                <i class="fas fa-calculator"></i> Resultados Financieros
+              </div>
               <div class="card-body">
                 <div class="info-row">
                   <span class="info-key">Valor Nominal:</span>
@@ -120,8 +255,16 @@
                   <span class="info-value">{{ totalInteres | currency:bono.moneda }}</span>
                 </div>
                 <div class="info-row">
+                  <span class="info-key">Total Amortización:</span>
+                  <span class="info-value">{{ totalAmortizacion | currency:bono.moneda }}</span>
+                </div>
+                <div class="info-row">
                   <span class="info-key">Periodos:</span>
-                  <span class="info-value">{{ calculationResults.length }}</span>
+                  <span class="info-value">{{ numeroPeriodos }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-key">Cuota Promedio:</span>
+                  <span class="info-value">{{ (calculationResults.length > 0 ? (totalCuotas / calculationResults.length) : 0) | currency:bono.moneda }}</span>
                 </div>
               </div>
             </div>
@@ -202,6 +345,19 @@
               <div class="indicator-desc">Valor inicial del bono</div>
             </div>
 
+            <!-- Nuevas tarjetas para TIR y TCEA -->
+            <div class="indicator-card">
+              <div class="indicator-title">TIR</div>
+              <div class="indicator-value">{{ tir?.toFixed(2) }}%</div>
+              <div class="indicator-desc">Tasa Interna de Retorno</div>
+            </div>
+
+            <div class="indicator-card">
+              <div class="indicator-title">TCEA</div>
+              <div class="indicator-value">{{ tcea?.toFixed(2) }}%</div>
+              <div class="indicator-desc">Tasa de Costo Efectiva Anual</div>
+            </div>
+
             <div class="indicator-card">
               <div class="indicator-title">Total Intereses</div>
               <div class="indicator-value">{{ totalInteres | currency:bono.moneda:'symbol':'1.2-2' }}</div>
@@ -222,16 +378,14 @@
 
             <div class="indicator-card">
               <div class="indicator-title">Número de Periodos</div>
-              <div class="indicator-value">
-                {{ (calculationResults.length > 0 ? (totalCuotas / calculationResults.length) : 0) | currency:bono.moneda:'symbol':'1.2-2' }}
-              </div>
+              <div class="indicator-value">{{ numeroPeriodos }}</div>
               <div class="indicator-desc">Total de periodos de pago</div>
             </div>
 
             <div class="indicator-card">
               <div class="indicator-title">Cuota Promedio</div>
               <div class="indicator-value">
-                {{ (calculationResults.length > 0 ? (totalCuotas / calculationResults.length) : 0) | currency:bono.moneda:'symbol':'1.2-2' }}
+                {{ (numeroPeriodos > 0 ? (totalCuotas / numeroPeriodos) : 0) | currency:bono.moneda:'symbol':'1.2-2' }}
               </div>
               <div class="indicator-desc">Monto promedio por cuota</div>
             </div>
@@ -241,4 +395,3 @@
     </div>
   </div>
 </div>
-<app-footer></app-footer>

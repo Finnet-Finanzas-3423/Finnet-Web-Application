@@ -41,3 +41,37 @@ export interface BonoModel {
   comision: number;
   gastosAdministrativos: number;
 }
+
+export interface BonoModelEdit {
+  id?: number;
+  nombre: string;
+  descripcion: string;
+
+  valorNominal: number;
+  valorComercial: number;
+  moneda: Moneda;
+
+  fechaEmision: Date | string;
+  fechaVencimiento: Date | string;
+
+  tasaCupon: number;
+  tipoTasaCupon: TipoTasa;
+  capitalizacionCupon: Periodicidad;
+  tasaMercado: number;
+  tipoTasaMercado: TipoTasa;
+  capitalizacionMercado: Periodicidad;
+
+  frecuenciaPago: Periodicidad;
+  metodoAmortizacion: MetodoAmortizacion;
+
+  plazoGracia: PlazoGracia;
+  duracionPlazoGracia: number;
+
+  primaRedencion: number;
+  estructuracion: number;
+  colocacion: number;
+  flotacion: number;
+  cavali: number;
+  comision: number;
+  gastosAdministrativos: number;
+}

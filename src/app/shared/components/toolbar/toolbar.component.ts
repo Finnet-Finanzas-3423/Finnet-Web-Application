@@ -9,7 +9,6 @@ import { AuthService } from '../../../auth/services/auth.service';
   templateUrl: './toolbar.component.html',
   imports: [
     RouterLink,
-    RouterLinkActive,
     CommonModule
   ],
   styleUrls: ['./toolbar.component.css'],

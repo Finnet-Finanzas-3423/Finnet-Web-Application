@@ -5,9 +5,7 @@ import { trigger, transition, style, animate } from '@angular/animations';
 import { Router } from '@angular/router';
 import { BonoModel } from '../../shared/models/bono.model';
 import { Moneda, Periodicidad, PlazoGracia, TipoTasa, MetodoAmortizacion } from '../../shared/models/bono.model';
-import { BonoService } from '../../shared/services/bono.service';
-import {ToolbarComponent} from '../../shared/components/toolbar/toolbar.component';
-import {FooterComponent} from '../../shared/components/footer/footer.component';
+import { BonoService } from '../../shared/services/bono.service'
 
 @Component({
   selector: 'app-form-bono',
@@ -16,9 +14,7 @@ import {FooterComponent} from '../../shared/components/footer/footer.component';
     ReactiveFormsModule,
     NgIf,
     NgForOf,
-    NgClass,
-    ToolbarComponent,
-    FooterComponent
+    NgClass
   ],
   templateUrl: './form-bono.component.html',
   styleUrl: './form-bono.component.css',

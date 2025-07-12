@@ -1,0 +1,40 @@
+<div class="modal-backdrop" (click)="onCancel()"></div>
+<div class="modal delete-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-icon">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <h3>Eliminar Bono</h3>
+      <button class="close-btn" (click)="onCancel()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p>¿Estás seguro de que deseas eliminar este bono?</p>
+      <p class="modal-warning">Esta acción no se puede deshacer y eliminará permanentemente todos los datos asociados al bono.</p>
+
+      <div class="bono-info" *ngIf="bono">
+        <div class="info-item">
+          <span class="label">Nombre:</span>
+          <span class="value">{{ bono.nombre || 'Sin nombre' }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Valor Nominal:</span>
+          <span class="value">{{ getCurrencySymbol(bono.moneda) }} {{ parseFloat(bono.valorNominal).toLocaleString('es-PE') }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Fecha de Vencimiento:</span>
+          <span class="value">{{ formatDate(bono.fechaVencimiento?.toString()) }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" (click)="onCancel()">Cancelar</button>
+      <button class="btn-delete" [disabled]="isDeleting" (click)="onConfirm()">
+        <span *ngIf="!isDeleting">Eliminar</span>
+        <div *ngIf="isDeleting" class="btn-spinner"></div>
+      </button>
+    </div>
+  </div>
+</div>

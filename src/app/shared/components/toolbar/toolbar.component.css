@@ -38,12 +38,6 @@
   letter-spacing: -0.5px;
 }
 
-/* Navigation Links */
-.navigation-links {
-  display: flex;
-  gap: 8px;
-}
-
 .nav-link {
   color: rgba(255, 255, 255, 0.8);
   text-decoration: none;

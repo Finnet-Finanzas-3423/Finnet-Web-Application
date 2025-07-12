@@ -3,7 +3,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { NgClass, NgForOf, NgIf } from '@angular/common';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { Router, ActivatedRoute } from '@angular/router';
-import { BonoModel } from '../../shared/models/bono.model';
+import {BonoModelEdit} from '../../shared/models/bono.model';
 import { Moneda, Periodicidad, PlazoGracia, TipoTasa, MetodoAmortizacion } from '../../shared/models/bono.model';
 import { BonoService } from '../../shared/services/bono.service';
 import { ToolbarComponent } from '../../shared/components/toolbar/toolbar.component';
@@ -16,9 +16,7 @@ import { FooterComponent } from '../../shared/components/footer/footer.component
     ReactiveFormsModule,
     NgIf,
     NgForOf,
-    NgClass,
-    ToolbarComponent,
-    FooterComponent
+    NgClass
   ],
   templateUrl: './edit-bono.component.html',
   styleUrl: './edit-bono.component.css',
@@ -45,14 +43,14 @@ export class EditBonoComponent implements OnInit {
   isLoading = true;
   errorMessage = '';
   currentDate: string;
+  originalBono: any = null;
 
-  // Definición de pasos
   steps = [
     { title: 'Información Principal', icon: 'fa-file-signature', isValid: false },
     { title: 'Valores y Plazos', icon: 'fa-coins', isValid: false },
     { title: 'Tasas e Intereses', icon: 'fa-percentage', isValid: false },
     { title: 'Frecuencias y Método', icon: 'fa-sliders-h', isValid: false },
-    { title: 'Costos Adicionales', icon: 'fa-tags', isValid: true }, // Opcional, siempre válido
+    { title: 'Costos Adicionales', icon: 'fa-tags', isValid: true },
     { title: 'Resumen', icon: 'fa-clipboard-check', isValid: false }
   ];
 
@@ -74,8 +72,8 @@ export class EditBonoComponent implements OnInit {
     'MENSUAL', 'QUINCENAL', 'SEMANAL', 'DIARIA'
   ];
 
-  metodosAmortizacion: MetodoAmortizacion[] = ['FRANCES', 'ALEMAN', 'AMERICANO'];
-  metodosAmortizacionDisponibles: MetodoAmortizacion[] = ['FRANCES', 'ALEMAN', 'AMERICANO']; // Todos disponibles en edición
+  metodosAmortizacion: MetodoAmortizacion[] = ['FRANCES']; // Solo mostramos el método FRANCES
+  metodosAmortizacionDisponibles: MetodoAmortizacion[] = ['FRANCES']; // Solo el método FRANCES está disponible
   plazosGracia: PlazoGracia[] = ['NINGUNO', 'PARCIAL', 'TOTAL'];
   tiposTasa: TipoTasa[] = ['EFECTIVA', 'NOMINAL'];
 
@@ -94,6 +92,8 @@ export class EditBonoComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    window.scrollTo(0, 0);
+
     this.inicializarFormulario();
 
     this.route.paramMap.subscribe(params => {
@@ -133,8 +133,6 @@ export class EditBonoComponent implements OnInit {
   }
 
   inicializarFormulario(): void {
-    const userId = localStorage.getItem('id') ? Number(localStorage.getItem('id')) : 1;
-
     this.bonoForm = this.formBuilder.group({
       nombre: ['', Validators.required],
       descripcion: [''],
@@ -150,17 +148,16 @@ export class EditBonoComponent implements OnInit {
       tasaMercado: ['', Validators.min(0)],
       tipoTasaMercado: ['EFECTIVA'],
       capitalizacionMercado: ['ANUAL'],
-      metodoAmortizacion: ['FRANCES'],
-      primaRedencion: ['0', Validators.min(0)],
-      estructuracion: ['0', Validators.min(0)],
-      colocacion: ['0', Validators.min(0)],
-      flotacion: ['0', Validators.min(0)],
-      cavali: ['0', Validators.min(0)],
+      metodoAmortizacion: ['FRANCES'], // Solo FRANCES
+      primaRedencion: ['', Validators.min(0)],
+      estructuracion: ['', Validators.min(0)],
+      colocacion: ['', Validators.min(0)],
+      flotacion: ['', Validators.min(0)],
+      cavali: ['', Validators.min(0)],
       plazoGracia: ['NINGUNO'],
-      duracionPlazoGracia: ['0', Validators.min(0)],
-      comision: ['0', Validators.min(0)],
-      gastosAdministrativos: ['0', Validators.min(0)],
-      userId: [userId]
+      duracionPlazoGracia: ['', Validators.min(0)],
+      comision: ['', Validators.min(0)],
+      gastosAdministrativos: ['', Validators.min(0)]
     }, { validators: this.fechaVencimientoValidator });
 
     this.bonoForm.valueChanges.subscribe(() => {
@@ -173,6 +170,9 @@ export class EditBonoComponent implements OnInit {
 
     this.bonoService.getBonoById(this.bonoId).subscribe({
       next: (bono) => {
+        // Guardar el bono original para referencia
+        this.originalBono = {...bono};
+
         // Formatear fechas para los inputs de tipo date
         if (bono.fechaEmision) {
           const fechaEmision = typeof bono.fechaEmision === 'string'
@@ -394,7 +394,7 @@ export class EditBonoComponent implements OnInit {
   }
 
   volver(): void {
-    this.router.navigate(['/bonos', this.bonoId]);
+    this.router.navigate(['/dashboard']);
   }
 
   actualizarBono(): void {
@@ -414,39 +414,28 @@ export class EditBonoComponent implements OnInit {
       return;
     }
 
-    // Crear objeto de bono basado en el formulario
     const formValues = this.bonoForm.value;
 
-    // Ajuste importante: Crear fechas con hora 12:00 para evitar problemas de zona horaria
-    const fechaEmisionStr = formValues.fechaEmision;
-    const fechaVencimientoStr = formValues.fechaVencimiento;
-
-    // Construir fechas con hora 12:00 UTC para evitar cambios de día
-    const fechaEmision = new Date(`${fechaEmisionStr}T12:00:00Z`);
-    const fechaVencimiento = new Date(`${fechaVencimientoStr}T12:00:00Z`);
-
-    const bono: BonoModel = {
-      id: this.bonoId,
-      nombre: formValues.nombre,
-      descripcion: formValues.descripcion || '',
-      userId: formValues.userId,
-      valorNominal: Number(formValues.valorNominal),
-      valorComercial: Number(formValues.valorComercial) || Number(formValues.valorNominal),
-      fechaEmision: fechaEmision,
-      fechaVencimiento: fechaVencimiento,
-      tasaCupon: Number(formValues.tasaCupon),
-      tipoTasaCupon: formValues.tipoTasaCupon as TipoTasa,
-      capitalizacionCupon: formValues.capitalizacionCupon as Periodicidad,
-      tipoTasaMercado: formValues.tipoTasaMercado as TipoTasa,
-      tasaMercado: Number(formValues.tasaMercado) || Number(formValues.tasaCupon),
-      capitalizacionMercado: formValues.capitalizacionMercado as Periodicidad,
-      frecuenciaPago: formValues.frecuenciaPago as Periodicidad,
+    const bonoActualizado: BonoModelEdit = {
+      nombre: formValues.nombre || "",
+      descripcion: formValues.descripcion || "",
+      valorNominal: Number(formValues.valorNominal) || 0,
+      valorComercial: Number(formValues.valorComercial) || 0,
+      fechaEmision: new Date(formValues.fechaEmision),
+      fechaVencimiento: new Date(formValues.fechaVencimiento),
+      tasaCupon: Number(formValues.tasaCupon) || 0,
+      tipoTasaCupon: (formValues.tipoTasaCupon || "EFECTIVA") as TipoTasa,
+      capitalizacionCupon: (formValues.capitalizacionCupon || "ANUAL") as Periodicidad,
+      tipoTasaMercado: (formValues.tipoTasaMercado || "EFECTIVA") as TipoTasa,
+      tasaMercado: Number(formValues.tasaMercado) || 0,
+      capitalizacionMercado: (formValues.capitalizacionMercado || "ANUAL") as Periodicidad,
+      frecuenciaPago: (formValues.frecuenciaPago || "ANUAL") as Periodicidad,
       comision: Number(formValues.comision) || 0,
       gastosAdministrativos: Number(formValues.gastosAdministrativos) || 0,
-      plazoGracia: formValues.plazoGracia as PlazoGracia,
+      plazoGracia: (formValues.plazoGracia || "NINGUNO") as PlazoGracia,
       duracionPlazoGracia: Number(formValues.duracionPlazoGracia) || 0,
-      moneda: formValues.moneda as Moneda,
-      metodoAmortizacion: formValues.metodoAmortizacion as MetodoAmortizacion,
+      moneda: (formValues.moneda || "PEN") as Moneda,
+      metodoAmortizacion: 'FRANCES' as MetodoAmortizacion,
       primaRedencion: Number(formValues.primaRedencion) || 0,
       estructuracion: Number(formValues.estructuracion) || 0,
       colocacion: Number(formValues.colocacion) || 0,
@@ -456,7 +445,7 @@ export class EditBonoComponent implements OnInit {
 
     this.isLoading = true;
 
-    this.bonoService.updateBono(this.bonoId, bono).subscribe({
+    this.bonoService.updateBono(this.bonoId, bonoActualizado).subscribe({
       next: () => {
         this.isLoading = false;
         this.router.navigate(['/bonos', this.bonoId]);
@@ -468,7 +457,6 @@ export class EditBonoComponent implements OnInit {
     });
   }
 
-  // Helpers para mostrar la UI
   isStepClickable(stepIndex: number): boolean {
     // Permitir clic en cualquier paso anterior
     if (stepIndex < this.currentStep) {

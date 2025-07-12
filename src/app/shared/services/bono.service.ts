@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { BonoModel } from '../models/bono.model';
+import {BonoModel, BonoModelEdit} from '../models/bono.model';
 import {environment} from '../../../environments/environment.production';
 
 @Injectable({
@@ -24,8 +24,8 @@ export class BonoService {
     return this.http.get<BonoModel>(`${this.baseUrl}/${id}`);
   }
 
-  updateBono(id: number, bono: BonoModel): Observable<BonoModel> {
-    return this.http.put<BonoModel>(`${this.baseUrl}/${id}`, bono);
+  updateBono(id: number, bono: BonoModelEdit): Observable<BonoModelEdit> {
+    return this.http.put<BonoModelEdit>(`${this.baseUrl}/${id}`, bono);
   }
 
   deleteBono(id: number): Observable<void> {

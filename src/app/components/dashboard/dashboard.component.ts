@@ -1,21 +1,22 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { BonoService } from '../../shared/services/bono.service';
 import { BonoModel } from '../../shared/models/bono.model';
 import Chart from 'chart.js/auto';
-import {ToolbarComponent} from '../../shared/components/toolbar/toolbar.component';
-import {FooterComponent} from '../../shared/components/footer/footer.component';
+import { ToolbarComponent } from '../../shared/components/toolbar/toolbar.component';
+import { FooterComponent } from '../../shared/components/footer/footer.component';
+import {DeleteDialogComponent} from '../delete-dialog/delete-dialog.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, ToolbarComponent, FooterComponent],
+  imports: [CommonModule, FormsModule, DeleteDialogComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css'
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   bonos: BonoModel[] = [];
   isLoading = true;
   error: string | null = null;
@@ -28,6 +29,11 @@ export class DashboardComponent implements OnInit {
   // Charts
   tasaInteresChart: Chart | null = null;
   vencimientoChart: Chart | null = null;
+
+  // Delete modal
+  showDeleteModal = false;
+  bonoToDelete: BonoModel | null = null;
+  isDeleting = false;
 
   // Summary metrics
   get totalBonos(): number {
@@ -70,6 +76,31 @@ export class DashboardComponent implements OnInit {
   ngOnInit(): void {
     this.loadBonosByUser();
   }
+
+  ngOnDestroy(): void {
+    // Destruir los gráficos para evitar memory leaks
+    if (this.tasaInteresChart) {
+      this.tasaInteresChart.destroy();
+    }
+
+    if (this.vencimientoChart) {
+      this.vencimientoChart.destroy();
+    }
+
+    // Remover event listeners si los hubiera
+    window.removeEventListener('resize', this.handleResize);
+  }
+
+  // Método para manejar resize
+  private handleResize = () => {
+    if (this.tasaInteresChart) {
+      this.tasaInteresChart.resize();
+    }
+
+    if (this.vencimientoChart) {
+      this.vencimientoChart.resize();
+    }
+  };
 
   loadBonosByUser(): void {
     const userId = this.getUserId();
@@ -150,13 +181,31 @@ export class DashboardComponent implements OnInit {
           legend: {
             position: 'bottom',
             labels: {
-              boxWidth: 12
+              boxWidth: 12,
+              font: {
+                size: 11
+              },
+              padding: 15
+            }
+          },
+          tooltip: {
+            bodyFont: {
+              size: 12
+            },
+            titleFont: {
+              size: 13
             }
           }
         },
-        cutout: '65%'
+        cutout: '65%',
+        layout: {
+          padding: 10
+        }
       }
     });
+
+    // Añadir evento de resize para reajustar
+    window.addEventListener('resize', this.handleResize);
   }
 
   createVencimientoChart(): void {
@@ -211,6 +260,11 @@ export class DashboardComponent implements OnInit {
             ticks: {
               callback: function(value) {
                 if (typeof value === 'number') {
+                  // En pantallas pequeñas, simplificar el formato
+                  if (window.innerWidth < 576) {
+                    return 'S/ ' + (value / 1000) + 'K';
+                  }
+
                   return value.toLocaleString('es-PE', {
                     style: 'currency',
                     currency: 'PEN',
@@ -219,19 +273,42 @@ export class DashboardComponent implements OnInit {
                   });
                 }
                 return value;
-              }
+              },
+              font: {
+                size: window.innerWidth < 768 ? 10 : 12
+              },
+              maxRotation: 0,
+              autoSkipPadding: 10
             }
           },
           x: {
             grid: {
               display: false
+            },
+            ticks: {
+              font: {
+                size: window.innerWidth < 768 ? 10 : 12
+              },
+              maxRotation: 45,
+              minRotation: 45
             }
           }
         },
         plugins: {
           legend: {
             display: false
+          },
+          tooltip: {
+            bodyFont: {
+              size: 12
+            },
+            titleFont: {
+              size: 13
+            }
           }
+        },
+        layout: {
+          padding: 10
         }
       }
     });
@@ -356,6 +433,47 @@ export class DashboardComponent implements OnInit {
   editBono(id: number, event: Event): void {
     event.stopPropagation();
     this.router.navigate(['/bonos', id, 'editar']);
+  }
+
+  openDeleteModal(bono: BonoModel, event: Event): void {
+    event.stopPropagation();
+    this.bonoToDelete = bono;
+    this.showDeleteModal = true;
+    // Prevenir scroll del body
+    document.body.style.overflow = 'hidden';
+  }
+
+  cancelDelete(): void {
+    this.showDeleteModal = false;
+    this.bonoToDelete = null;
+    // Restaurar scroll del body
+    document.body.style.overflow = '';
+  }
+
+  confirmDelete(): void {
+    if (!this.bonoToDelete || !this.bonoToDelete.id) return;
+
+    this.isDeleting = true;
+
+    this.bonoService.deleteBono(this.bonoToDelete.id).subscribe({
+      next: () => {
+        this.bonos = this.bonos.filter(bono => bono.id !== this.bonoToDelete?.id);
+
+        this.showDeleteModal = false;
+        this.bonoToDelete = null;
+        this.isDeleting = false;
+
+        document.body.style.overflow = '';
+
+        setTimeout(() => {
+          this.initCharts();
+        }, 100);
+      },
+      error: (err) => {
+        console.error('Error al eliminar el bono:', err);
+        this.isDeleting = false;
+      }
+    });
   }
 
   hasProperty(obj: any, prop: string): boolean {

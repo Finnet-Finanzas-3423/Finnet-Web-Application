@@ -1,3 +1,10 @@
-<app-toolbar></app-toolbar>
-<app-welcome></app-welcome>
-<app-footer></app-footer>
+<div *ngIf="isLoading" class="loading-container">
+  <div class="spinner"></div>
+  <p>Cargando...</p>
+</div>
+
+<!-- Mostrar Dashboard si tiene bonos -->
+<app-dashboard *ngIf="!isLoading && hasBonos"></app-dashboard>
+
+<!-- Mostrar Welcome si no tiene bonos -->
+<app-welcome *ngIf="!isLoading && !hasBonos"></app-welcome>

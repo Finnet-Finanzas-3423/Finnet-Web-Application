@@ -5,8 +5,6 @@ import { CommonModule } from '@angular/common';
 import { BonoModel } from '../../shared/models/bono.model';
 import { HttpClientModule } from '@angular/common/http';
 import Chart from 'chart.js/auto';
-import {ToolbarComponent} from '../../shared/components/toolbar/toolbar.component';
-import {FooterComponent} from '../../shared/components/footer/footer.component';
 
 interface AmortizacionRow {
   saldoInicial: number | string;
@@ -17,10 +15,18 @@ interface AmortizacionRow {
   periodo?: number;
 }
 
+interface CalculationResultsResponse {
+  cupones: AmortizacionRow[];
+  resultados: {
+    tir: number;
+    tcea: number;
+  };
+}
+
 @Component({
   selector: 'app-bono-detail',
   standalone: true,
-  imports: [CommonModule, HttpClientModule, ToolbarComponent, FooterComponent],
+  imports: [CommonModule, HttpClientModule],
   templateUrl: './bono-detail.component.html',
   styleUrl: './bono-detail.component.css'
 })
@@ -28,6 +34,8 @@ export class BonoDetailComponent implements OnInit, AfterViewInit {
   bonoId: number | null = null;
   bono: BonoModel | null = null;
   calculationResults: AmortizacionRow[] = [];
+  tir: number | null = null;
+  tcea: number | null = null;
   isLoading = true;
   error: string | null = null;
   activeTab = 'resumen';
@@ -36,6 +44,7 @@ export class BonoDetailComponent implements OnInit, AfterViewInit {
   saldoChart: Chart | null = null;
   pagosChart: Chart | null = null;
   flujoChart: Chart | null = null;
+  resumenDistribucionChart: Chart | null = null;
 
   constructor(
     private route: ActivatedRoute,
@@ -79,9 +88,24 @@ export class BonoDetailComponent implements OnInit, AfterViewInit {
     if (!this.bonoId) return;
 
     this.bonoService.calculateBono(this.bonoId).subscribe({
-      next: (data: AmortizacionRow[]) => {
-        this.calculationResults = data;
+      next: (response: CalculationResultsResponse) => {
+        // Extraer cupones y resultados de la respuesta
+        this.calculationResults = response.cupones;
+        this.tir = response.resultados.tir;
+        this.tcea = response.resultados.tcea;
+
         this.isLoading = false;
+
+        // Inicializar gráficos si corresponde
+        if (this.activeTab === 'graficas') {
+          setTimeout(() => {
+            this.initCharts();
+          }, 100);
+        } else if (this.activeTab === 'resumen') {
+          setTimeout(() => {
+            this.initResumenChart();
+          }, 100);
+        }
       },
       error: (err) => {
         this.error = `Error al calcular detalles del bono: ${err.message}`;
@@ -98,11 +122,91 @@ export class BonoDetailComponent implements OnInit, AfterViewInit {
       setTimeout(() => {
         this.initCharts();
       }, 100);
+    } else if (tabName === 'resumen' && this.calculationResults.length > 0) {
+      setTimeout(() => {
+        this.initResumenChart();
+      }, 100);
     }
   }
 
   goBack(): void {
-    this.router.navigate(['/bonos']);
+    this.router.navigate(['/dashboard']);
+  }
+
+  initResumenChart(): void {
+    // Implementación del gráfico de resumen
+    if (this.resumenDistribucionChart) {
+      this.resumenDistribucionChart.destroy();
+    }
+
+    const ctx = document.getElementById('resumenDistribucionChart') as HTMLCanvasElement;
+    if (!ctx) return;
+
+    // Preparar datos para el gráfico
+    const labels = ['Interés', 'Amortización'];
+    const data = [this.totalInteres, this.totalAmortizacion];
+
+    this.resumenDistribucionChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Distribución de Pagos',
+          data: data,
+          backgroundColor: [
+            'rgba(79, 172, 254, 0.7)',
+            'rgba(0, 242, 254, 0.7)'
+          ],
+          borderColor: [
+            'rgb(79, 172, 254)',
+            'rgb(0, 242, 254)'
+          ],
+          borderWidth: 1,
+          borderRadius: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const value = context.parsed.y;
+                const total = data[0] + data[1];
+                const percentage = Math.round((value / total) * 100);
+                return `${labels[context.dataIndex]}: ${value.toLocaleString('es-PE')} (${percentage}%)`;
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: {
+              display: true,
+              color: 'rgba(0, 0, 0, 0.05)'
+            },
+            ticks: {
+              callback: function(value) {
+                if (typeof value === 'number') {
+                  return value.toLocaleString('es-PE');
+                }
+                return value;
+              }
+            }
+          },
+          x: {
+            grid: {
+              display: false
+            }
+          }
+        }
+      }
+    });
   }
 
   initCharts(): void {
@@ -301,5 +405,20 @@ export class BonoDetailComponent implements OnInit, AfterViewInit {
 
   get totalCuotas(): number {
     return this.calculationResults.reduce((sum, row) => sum + row.cuota, 0);
+  }
+
+  // Getter para obtener el número de períodos (restando 1 porque no se cuenta el periodo 0)
+  get numeroPeriodos(): number {
+    return Math.max(0, this.calculationResults.length - 1);
+  }
+
+  // Helper para formatear porcentajes
+  formatPercent(value: string | number | null | undefined): string {
+    if (value === null || value === undefined) return '0%';
+
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(numValue)) return '0%';
+
+    return `${numValue}%`;
   }
 }
