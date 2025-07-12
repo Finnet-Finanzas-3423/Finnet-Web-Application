@@ -1,14 +1,14 @@
 import { Component } from '@angular/core';
+import {WelcomeComponent} from '../../../components/welcome/welcome.component';
 import {ToolbarComponent} from '../toolbar/toolbar.component';
 import {FooterComponent} from '../footer/footer.component';
-import {WelcomeComponent} from '../../../components/welcome/welcome.component';
 
 @Component({
   selector: 'app-home-page',
   imports: [
+    WelcomeComponent,
     ToolbarComponent,
-    FooterComponent,
-    WelcomeComponent
+    FooterComponent
   ],
   templateUrl: './home-page.component.html',
   styleUrl: './home-page.component.css'

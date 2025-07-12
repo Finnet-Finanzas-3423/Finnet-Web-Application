@@ -35,6 +35,7 @@ export class SignInComponent {
         this.authService.profile().subscribe({
           next: (profile:Profile) => {
             console.log('Profile retrieved:', profile);
+            localStorage.setItem('id', profile.id.toString());
             this.router.navigate(['/home']);
           },
           error: (error) => {
@@ -42,7 +43,7 @@ export class SignInComponent {
           }
         });
       },
-      error: (error) => {   
+      error: (error) => {
         console.error('Login failed:', error);
         // Aquí puedes manejar el error, como mostrar un mensaje al usuario
       },

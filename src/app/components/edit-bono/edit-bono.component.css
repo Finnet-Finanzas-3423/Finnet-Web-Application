@@ -1,0 +1,266 @@
+/* Main container */
+.wizard-container {
+  max-width: 1000px;
+  margin: 20px auto;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 30px;
+  position: relative;
+}
+
+.back-button-wrapper {
+  margin-bottom: 20px;
+}
+
+.back-button {
+  background: none;
+  border: none;
+  color: #5c6b7a;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  transition: color 0.3s;
+}
+
+.back-button:hover {
+  color: #3a4650;
+}
+
+.back-button i {
+  margin-right: 8px;
+}
+
+.wizard-title {
+  font-size: 24px;
+  color: #1a1f35;
+  margin-bottom: 30px;
+  text-align: center;
+  font-weight: 600;
+}
+
+/* Loading and error states */
+.loading-container, .error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(0, 123, 255, 0.2);
+  border-top-color: #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.error-container {
+  color: #dc3545;
+}
+
+.error-container i {
+  font-size: 40px;
+  margin-bottom: 15px;
+}
+
+.btn-retry {
+  margin-top: 15px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Progress indicator */
+.progress-container {
+  margin-bottom: 30px;
+}
+
+.progress-bar {
+  height: 6px;
+  background-color: #e9edf2;
+  border-radius: 3px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(to right, #4facfe, #00f2fe);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.step-indicators {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 -10px;
+}
+
+.step-indicator {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 10px;
+  position: relative;
+  max-width: 120px;
+}
+
+.step-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: #e9edf2;
+  color: #8395a7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  margin-bottom: 8px;
+  position: relative;
+  transition: all 0.3s;
+}
+
+.step-title {
+  font-size: 12px;
+  color: #8395a7;
+  text-align: center;
+  line-height: 1.2;
+  transition: all 0.3s;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.step-icon {
+  font-size: 14px;
+  color: #b3c0c9;
+  transition: all 0.3s;
+}
+
+/* Step indicator states */
+.step-indicator.active .step-number {
+  background-color: #4facfe;
+  color: white;
+}
+
+.step-indicator.active .step-title {
+  color: #4facfe;
+  font-weight: 600;
+}
+
+.step-indicator.active .step-icon {
+  color: #4facfe;
+}
+
+.step-indicator.completed .step-number {
+  background-color: #4cd783;
+  color: white;
+}
+
+.step-indicator.completed .step-title {
+  color: #4cd783;
+}
+
+.step-indicator.completed .step-icon {
+  color: #4cd783;
+}
+
+.step-indicator.clickable {
+  cursor: pointer;
+}
+
+.step-indicator.clickable:hover .step-number {
+  transform: scale(1.1);
+}
+
+/* Form content */
+.wizard-content {
+  min-height: 400px;
+}
+
+.form-step {
+  animation-duration: 0.3s;
+}
+
+.step-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.step-icon-container {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4facfe, #00f2fe);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 15px;
+  color: white;
+  font-size: 18px;
+}
+
+.step-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  color: #1a1f35;
+}
+
+.form-group {
+  margin-bottom: 25px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #5c6b7a;
+  font-size: 14px;
+}
+
+.input-with-icon {
+  position: relative;
+}
+
+.icon-left {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #8395a7;
+}
+
+.icon-right {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #8395a7;
+}
+
+.form-control.with-icon {
+  padding-left: 40px;
+}
+
+.form-control {
+  width: 100%;
+  padding: 12px 15px;
+}

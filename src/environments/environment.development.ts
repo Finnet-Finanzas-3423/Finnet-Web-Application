@@ -1,4 +1,4 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:3000/api'
+  apiUrl: 'https://finnet-axexhefhajcpende.westus-01.azurewebsites.net/api'
 }

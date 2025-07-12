@@ -2,15 +2,15 @@ import { Component, OnInit, Output, EventEmitter } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgClass, NgForOf, NgIf } from '@angular/common';
 import { trigger, transition, style, animate } from '@angular/animations';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { BonoModel } from '../../shared/models/bono.model';
 import { Moneda, Periodicidad, PlazoGracia, TipoTasa, MetodoAmortizacion } from '../../shared/models/bono.model';
 import { BonoService } from '../../shared/services/bono.service';
-import {ToolbarComponent} from '../../shared/components/toolbar/toolbar.component';
-import {FooterComponent} from '../../shared/components/footer/footer.component';
+import { ToolbarComponent } from '../../shared/components/toolbar/toolbar.component';
+import { FooterComponent } from '../../shared/components/footer/footer.component';
 
 @Component({
-  selector: 'app-form-bono',
+  selector: 'app-edit-bono',
   standalone: true,
   imports: [
     ReactiveFormsModule,
@@ -20,8 +20,8 @@ import {FooterComponent} from '../../shared/components/footer/footer.component';
     ToolbarComponent,
     FooterComponent
   ],
-  templateUrl: './form-bono.component.html',
-  styleUrl: './form-bono.component.css',
+  templateUrl: './edit-bono.component.html',
+  styleUrl: './edit-bono.component.css',
   animations: [
     trigger('stepAnimation', [
       transition(':enter', [
@@ -34,15 +34,16 @@ import {FooterComponent} from '../../shared/components/footer/footer.component';
     ])
   ]
 })
-export class FormBonoComponent implements OnInit {
+export class EditBonoComponent implements OnInit {
   @Output() volverEvent = new EventEmitter<void>();
-  @Output() bonoCreado = new EventEmitter<number>();
 
   bonoForm!: FormGroup;
+  bonoId!: number;
   currentStep = 0;
   submitted = false;
   showMonedaDropdown = false;
-  isLoading = false;
+  isLoading = true;
+  errorMessage = '';
   currentDate: string;
 
   // Definición de pasos
@@ -74,7 +75,7 @@ export class FormBonoComponent implements OnInit {
   ];
 
   metodosAmortizacion: MetodoAmortizacion[] = ['FRANCES', 'ALEMAN', 'AMERICANO'];
-  metodosAmortizacionDisponibles: MetodoAmortizacion[] = ['FRANCES'];
+  metodosAmortizacionDisponibles: MetodoAmortizacion[] = ['FRANCES', 'ALEMAN', 'AMERICANO']; // Todos disponibles en edición
   plazosGracia: PlazoGracia[] = ['NINGUNO', 'PARCIAL', 'TOTAL'];
   tiposTasa: TipoTasa[] = ['EFECTIVA', 'NOMINAL'];
 
@@ -85,6 +86,7 @@ export class FormBonoComponent implements OnInit {
     private formBuilder: FormBuilder,
     private bonoService: BonoService,
     private router: Router,
+    private route: ActivatedRoute
   ) {
     // Obtener fecha actual en formato YYYY-MM-DD para los date pickers
     const today = new Date();
@@ -93,6 +95,18 @@ export class FormBonoComponent implements OnInit {
 
   ngOnInit(): void {
     this.inicializarFormulario();
+
+    this.route.paramMap.subscribe(params => {
+      const id = params.get('id');
+      if (id) {
+        this.bonoId = +id;
+        this.cargarDatosBono();
+      } else {
+        this.errorMessage = 'ID del bono no proporcionado';
+        this.isLoading = false;
+      }
+    });
+
     setTimeout(() => {
       this.validateCurrentStep();
     }, 0);
@@ -119,9 +133,6 @@ export class FormBonoComponent implements OnInit {
   }
 
   inicializarFormulario(): void {
-    const today = new Date();
-    const oneYearLater = new Date(today);
-    oneYearLater.setFullYear(today.getFullYear() + 1);
     const userId = localStorage.getItem('id') ? Number(localStorage.getItem('id')) : 1;
 
     this.bonoForm = this.formBuilder.group({
@@ -130,8 +141,8 @@ export class FormBonoComponent implements OnInit {
       moneda: ['PEN'],
       valorNominal: ['', [Validators.required, Validators.min(0)]],
       valorComercial: ['', Validators.min(0)],
-      fechaEmision: [this.formatDateForInput(today), Validators.required],
-      fechaVencimiento: [this.formatDateForInput(oneYearLater), Validators.required],
+      fechaEmision: ['', Validators.required],
+      fechaVencimiento: ['', Validators.required],
       tasaCupon: ['', [Validators.required, Validators.min(0)]],
       tipoTasaCupon: ['EFECTIVA'],
       capitalizacionCupon: ['ANUAL'],
@@ -154,6 +165,38 @@ export class FormBonoComponent implements OnInit {
 
     this.bonoForm.valueChanges.subscribe(() => {
       this.validateCurrentStep();
+    });
+  }
+
+  cargarDatosBono(): void {
+    this.isLoading = true;
+
+    this.bonoService.getBonoById(this.bonoId).subscribe({
+      next: (bono) => {
+        // Formatear fechas para los inputs de tipo date
+        if (bono.fechaEmision) {
+          const fechaEmision = typeof bono.fechaEmision === 'string'
+            ? new Date(bono.fechaEmision)
+            : new Date(bono.fechaEmision);
+          bono.fechaEmision = this.formatDateForInput(fechaEmision);
+        }
+
+        if (bono.fechaVencimiento) {
+          const fechaVencimiento = typeof bono.fechaVencimiento === 'string'
+            ? new Date(bono.fechaVencimiento)
+            : new Date(bono.fechaVencimiento);
+          bono.fechaVencimiento = this.formatDateForInput(fechaVencimiento);
+        }
+
+        this.bonoForm.patchValue(bono);
+        this.isLoading = false;
+        this.prepararResumen(); // Preparar resumen con los datos cargados
+        this.validateCurrentStep();
+      },
+      error: (error) => {
+        this.errorMessage = `Error al cargar el bono: ${error.message}`;
+        this.isLoading = false;
+      }
     });
   }
 
@@ -207,7 +250,7 @@ export class FormBonoComponent implements OnInit {
 
     if (this.steps[this.currentStep].isValid) {
       if (this.currentStep === this.steps.length - 1) {
-        this.calcularBono();
+        this.actualizarBono();
       } else {
         this.currentStep++;
 
@@ -272,6 +315,10 @@ export class FormBonoComponent implements OnInit {
 
   prepararResumen(): void {
     const formValues = this.bonoForm.value;
+
+    if (!formValues.fechaEmision || !formValues.fechaVencimiento) {
+      return;
+    }
 
     const fechaEmision = new Date(formValues.fechaEmision);
     const fechaVencimiento = new Date(formValues.fechaVencimiento);
@@ -346,61 +393,14 @@ export class FormBonoComponent implements OnInit {
     return this.metodosAmortizacionDisponibles.includes(metodo);
   }
 
-  limpiarCampos(): void {
-    this.submitted = false;
-
-    const today = new Date();
-    const oneYearLater = new Date(today);
-    oneYearLater.setFullYear(today.getFullYear() + 1);
-
-    this.bonoForm.reset();
-    this.bonoForm.patchValue({
-      moneda: 'PEN',
-      tipoTasaCupon: 'EFECTIVA',
-      tipoTasaMercado: 'EFECTIVA',
-      frecuenciaPago: 'ANUAL',
-      capitalizacionCupon: 'ANUAL',
-      capitalizacionMercado: 'ANUAL',
-      metodoAmortizacion: 'FRANCES',
-      plazoGracia: 'NINGUNO',
-      duracionPlazoGracia: 0,
-      primaRedencion: 0,
-      estructuracion: 0,
-      colocacion: 0,
-      flotacion: 0,
-      cavali: 0,
-      comision: 0,
-      gastosAdministrativos: 0,
-      userId: 1,
-      fechaEmision: this.formatDateForInput(today),
-      fechaVencimiento: this.formatDateForInput(oneYearLater)
-    });
-
-    this.currentStep = 0;
-    this.steps.forEach((step, index) => {
-      if (index !== 4) {
-        step.isValid = false;
-      } else {
-        step.isValid = true;
-      }
-    });
-
-    setTimeout(() => {
-      this.validateCurrentStep();
-    }, 0);
-  }
-
   volver(): void {
-    this.volverEvent.emit();
+    this.router.navigate(['/bonos', this.bonoId]);
   }
 
-  calcularBono(): void {
-    console.log('Función calcularBono ejecutada');
+  actualizarBono(): void {
     this.submitted = true;
 
     if (this.bonoForm.invalid) {
-      console.error('Formulario inválido:', this.bonoForm.errors);
-
       // Identificar el primer paso con errores y navegar a él
       if (!this.bonoForm.get('nombre')!.valid) {
         this.currentStep = 0;
@@ -425,13 +425,8 @@ export class FormBonoComponent implements OnInit {
     const fechaEmision = new Date(`${fechaEmisionStr}T12:00:00Z`);
     const fechaVencimiento = new Date(`${fechaVencimientoStr}T12:00:00Z`);
 
-    console.log('Fecha de emisión seleccionada:', formValues.fechaEmision);
-    console.log('Fecha de emisión para envío:', fechaEmision.toISOString());
-
-    console.log('Fecha de vencimiento seleccionada:', formValues.fechaVencimiento);
-    console.log('Fecha de vencimiento para envío:', fechaVencimiento.toISOString());
-
     const bono: BonoModel = {
+      id: this.bonoId,
       nombre: formValues.nombre,
       descripcion: formValues.descripcion || '',
       userId: formValues.userId,
@@ -459,25 +454,16 @@ export class FormBonoComponent implements OnInit {
       cavali: Number(formValues.cavali) || 0
     };
 
-    console.log('Enviando datos del bono:', JSON.stringify(bono));
     this.isLoading = true;
 
-    this.bonoService.createBono(bono).subscribe({
-      next: (response) => {
+    this.bonoService.updateBono(this.bonoId, bono).subscribe({
+      next: () => {
         this.isLoading = false;
-        console.log('Bono creado exitosamente:', response);
-
-        if (response && response.id) {
-          this.bonoCreado.emit(response.id);
-          this.router.navigate(['/bonos', response.id]);
-        } else {
-          console.error('La respuesta no contiene un ID válido:', response);
-          this.router.navigate(['/bonos']);
-        }
+        this.router.navigate(['/bonos', this.bonoId]);
       },
       error: (error) => {
         this.isLoading = false;
-        console.error('Error al crear el bono:', error);
+        this.errorMessage = `Error al actualizar el bono: ${error.message}`;
       }
     });
   }

@@ -1,0 +1,250 @@
+<app-toolbar></app-toolbar>
+<div class="dashboard-container">
+  <div class="dashboard-header">
+    <h1 class="dashboard-title">Dashboard de Bonos</h1>
+    <button class="btn-new-bond" (click)="createNewBono()">
+      <i class="fas fa-plus"></i> Crear Nuevo Bono
+    </button>
+  </div>
+
+  <!-- Loading indicator -->
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Cargando información de bonos...</p>
+  </div>
+
+  <!-- Error message -->
+  <div *ngIf="error" class="error-container">
+    <i class="fas fa-exclamation-circle"></i>
+    <p>{{ error }}</p>
+  </div>
+
+  <div *ngIf="!isLoading && !error" class="dashboard-content">
+    <!-- Summary cards -->
+    <div class="summary-cards">
+      <div class="summary-card" style="background-color: #EFF6FF;">
+        <div class="card-content">
+          <div class="card-details">
+            <h3 class="card-title">Total de Bonos</h3>
+            <div class="card-value">{{ totalBonos }}</div>
+          </div>
+          <div class="card-icon blue">
+            <i class="fas fa-file-invoice-dollar"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="summary-card" style="background-color: #ECFDF5;">
+        <div class="card-content">
+          <div class="card-details">
+            <h3 class="card-title">Valor Total</h3>
+            <div class="card-value">S/ {{ valorTotal.toLocaleString('es-PE') }}</div>
+          </div>
+          <div class="card-icon green">
+            <i class="fas fa-coins"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="summary-card" style="background-color: #F5F3FF;">
+        <div class="card-content">
+          <div class="card-details">
+            <h3 class="card-title">Tasa Promedio</h3>
+            <div class="card-value">{{ tasaPromedio.toFixed(2) }}%</div>
+          </div>
+          <div class="card-icon purple">
+            <i class="fas fa-percentage"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="summary-card" style="background-color: #FEF3C7;">
+        <div class="card-content">
+          <div class="card-details">
+            <h3 class="card-title">Próximos a vencer</h3>
+            <div class="card-value">{{ proximosAVencer }}</div>
+            <div class="card-subtitle">
+              {{ proximosAVencer }} bonos en los próximos 3 meses desde el último mes
+            </div>
+          </div>
+          <div class="card-icon orange">
+            <i class="fas fa-clock"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts section -->
+    <div class="charts-section">
+      <div class="chart-card">
+        <h3 class="chart-title">Distribución por Tasa de Interés</h3>
+        <div class="chart-container">
+          <canvas id="tasaInteresChart"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <h3 class="chart-title">Bonos por Vencimiento</h3>
+        <div class="chart-container">
+          <canvas id="vencimientoChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bonds list section -->
+    <div class="bonds-section">
+      <div class="bonds-header">
+        <h2 class="section-title">Mis Bonos Corporativos</h2>
+        <button class="btn-new-bond-mobile" (click)="createNewBono()">
+          <i class="fas fa-plus"></i> Crear Nuevo Bono
+        </button>
+      </div>
+
+      <div class="bonds-filters">
+        <div class="filter-group">
+          <label>Filtrar:</label>
+          <div class="dropdown">
+            <button class="dropdown-toggle">
+              {{ filterOption === 'all' ? 'Todos los bonos' : 'Próximos a vencer' }}
+              <i class="fas fa-chevron-down"></i>
+            </button>
+            <div class="dropdown-menu">
+              <div class="dropdown-item" [class.active]="filterOption === 'all'" (click)="setFilterOption('all')">
+                Todos los bonos
+              </div>
+              <div class="dropdown-item" [class.active]="filterOption === 'upcoming'" (click)="setFilterOption('upcoming')">
+                Próximos a vencer
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <label>Ordenar por:</label>
+          <div class="dropdown">
+            <button class="dropdown-toggle">
+              {{ sortOption === 'fechaVencimiento' ? 'Fecha de vencimiento' :
+              sortOption === 'valorNominal' ? 'Valor nominal' :
+                sortOption === 'tasaCupon' ? 'Tasa de interés' : 'Nombre' }}
+              <i class="fas fa-chevron-down"></i>
+            </button>
+            <div class="dropdown-menu">
+              <div class="dropdown-item" [class.active]="sortOption === 'fechaVencimiento'" (click)="setSortOption('fechaVencimiento')">
+                Fecha de vencimiento
+              </div>
+              <div class="dropdown-item" [class.active]="sortOption === 'valorNominal'" (click)="setSortOption('valorNominal')">
+                Valor nominal
+              </div>
+              <div class="dropdown-item" [class.active]="sortOption === 'tasaCupon'" (click)="setSortOption('tasaCupon')">
+                Tasa de interés
+              </div>
+              <div class="dropdown-item" [class.active]="sortOption === 'nombre'" (click)="setSortOption('nombre')">
+                Nombre
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="view-options">
+          <button [class.active]="viewMode === 'grid'" (click)="setViewMode('grid')">
+            <i class="fas fa-th-large"></i>
+          </button>
+          <button [class.active]="viewMode === 'list'" (click)="setViewMode('list')">
+            <i class="fas fa-list"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Grid view -->
+      <div *ngIf="viewMode === 'grid'" class="bonds-grid">
+        <div *ngFor="let bono of getFilteredBonos()" class="bond-card" (click)="bono.id !== undefined && navigateToBono(bono.id)">
+          <div class="bond-header">
+            <div class="bond-value">{{ getCurrencySymbol(bono.moneda) }} {{ parseFloat(bono.valorNominal).toLocaleString('es-PE') }}</div>
+            <div class="bond-badge">{{ calculateMonthsToExpiry(bono.fechaVencimiento.toString()) | number:'1.0-0' }} meses</div>
+          </div>
+
+          <div class="bond-name">{{ bono.nombre }}</div>
+          <div class="bond-expiry">Vence: {{ formatDate(bono.fechaVencimiento.toString()) }}</div>
+
+          <div class="bond-details">
+            <div class="detail-row">
+              <div class="detail-label">Tasa de interés</div>
+              <div class="detail-value">{{ parseFloat(bono.tasaCupon).toFixed(2) }}% ({{ bono.tipoTasaCupon?.toLowerCase() || 'efectiva' }})</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">Frecuencia</div>
+              <div class="detail-value">{{ bono.frecuenciaPago || 'No especificada' }}</div>
+            </div>
+          </div>
+
+          <div class="bond-created">Creado: {{ formatDate(bono.fechaEmision.toString()) }}</div>
+
+          <div class="bond-actions">
+            <button class="action-btn" (click)="bono.id !== undefined && navigateToBono(bono.id); $event.stopPropagation()">
+              <i class="fas fa-eye"></i>
+            </button>
+            <button class="action-btn" (click)="bono.id !== undefined && editBono(bono.id, $event)">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="action-btn">
+              <i class="fas fa-download"></i>
+            </button>
+            <button class="action-btn delete">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- List view -->
+      <div *ngIf="viewMode === 'list'" class="bonds-list">
+        <table class="bonds-table">
+          <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Valor Nominal</th>
+            <th>Tasa</th>
+            <th>Vencimiento</th>
+            <th>Método</th>
+            <th>Acciones</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr *ngFor="let bono of getFilteredBonos()">
+            <td class="bond-name-cell">{{ bono.nombre || 'Sin nombre' }}</td>
+            <td>{{ getCurrencySymbol(bono.moneda) }} {{ parseFloat(bono.valorNominal).toLocaleString('es-PE') }}</td>
+            <td>{{ parseFloat(bono.tasaCupon).toFixed(2) }}%</td>
+            <td>{{ formatDate(bono.fechaVencimiento.toString()) }}</td>
+            <td>{{ bono.metodoAmortizacion || 'No especificado' }}</td>
+            <td class="actions-cell">
+              <button class="action-btn" (click)="bono.id !== undefined && navigateToBono(bono.id)">
+                <i class="fas fa-eye"></i>
+              </button>
+              <button class="action-btn" (click)="bono.id !== undefined && editBono(bono.id, $event)">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="action-btn">
+                <i class="fas fa-download"></i>
+              </button>
+              <button class="action-btn delete">
+                <i class="fas fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Empty state -->
+      <div *ngIf="getFilteredBonos().length === 0" class="empty-state">
+        <div class="empty-icon">
+          <i class="fas fa-search"></i>
+        </div>
+        <h3>No se encontraron bonos</h3>
+        <p>No hay bonos que coincidan con los criterios de filtrado actuales.</p>
+        <button class="btn-reset" (click)="filterOption = 'all'; sortOption = 'fechaVencimiento'">Reiniciar filtros</button>
+      </div>
+    </div>
+  </div>
+</div>
+<app-footer></app-footer>

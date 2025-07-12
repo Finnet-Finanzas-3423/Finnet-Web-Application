@@ -82,4 +82,8 @@ export class ToolbarComponent implements OnInit {
     }
     return text.substring(0, 2).toUpperCase();
   }
+  navigateToDashboard(): void {
+    this.router.navigate(['/dashboard']);
+    this.isMenuOpen = false;
+  }
 }

@@ -1,0 +1,244 @@
+<app-toolbar></app-toolbar>
+<div class="bono-detail-container">
+  <!-- Header with back button -->
+  <div class="detail-header">
+    <button class="back-button" (click)="goBack()">
+      <i class="fas fa-arrow-left"></i> Volver
+    </button>
+    <h2 class="detail-title">{{ bono?.nombre || 'Detalle del Bono' }}</h2>
+  </div>
+
+  <!-- Loading indicator -->
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Cargando detalles del bono...</p>
+  </div>
+
+  <!-- Error message -->
+  <div *ngIf="error" class="error-container">
+    <i class="fas fa-exclamation-circle"></i>
+    <p>{{ error }}</p>
+    <button (click)="goBack()" class="btn-retry">Volver a la lista</button>
+  </div>
+
+  <!-- Bond details -->
+  <div *ngIf="!isLoading && !error && bono && calculationResults.length > 0" class="bono-content">
+    <!-- Basic info card -->
+    <div class="bono-info-card">
+      <div class="info-section">
+        <div class="info-label">Valor nominal:</div>
+        <div class="info-value">{{ valorNominal | currency:bono.moneda }}</div>
+      </div>
+      <div class="info-section">
+        <div class="info-label">Tasa cupón:</div>
+        <div class="info-value">{{ bono.tasaCupon }}%</div>
+      </div>
+      <div class="info-section">
+        <div class="info-label">Frecuencia:</div>
+        <div class="info-value">{{ bono.frecuenciaPago }}</div>
+      </div>
+      <div class="info-section">
+        <div class="info-label">Emisión:</div>
+        <div class="info-value">{{ bono.fechaEmision | date:'dd/MM/yyyy' }}</div>
+      </div>
+      <div class="info-section">
+        <div class="info-label">Vencimiento:</div>
+        <div class="info-value">{{ bono.fechaVencimiento | date:'dd/MM/yyyy' }}</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs-container">
+      <div class="tabs-header">
+        <button
+          class="tab-button"
+          [class.active]="activeTab === 'resumen'"
+          (click)="setActiveTab('resumen')">
+          <i class="fas fa-file-alt"></i> Resumen
+        </button>
+        <button
+          class="tab-button"
+          [class.active]="activeTab === 'flujoCaja'"
+          (click)="setActiveTab('flujoCaja')">
+          <i class="fas fa-money-bill-wave"></i> Flujo de Caja
+        </button>
+        <button
+          class="tab-button"
+          [class.active]="activeTab === 'graficas'"
+          (click)="setActiveTab('graficas')">
+          <i class="fas fa-chart-line"></i> Gráficas
+        </button>
+        <button
+          class="tab-button"
+          [class.active]="activeTab === 'indicadores'"
+          (click)="setActiveTab('indicadores')">
+          <i class="fas fa-calculator"></i> Indicadores Financieros
+        </button>
+      </div>
+
+      <!-- Tab Content -->
+      <div class="tab-content">
+        <!-- Summary Tab -->
+        <div *ngIf="activeTab === 'resumen'" class="tab-pane">
+          <h3>Resumen del Bono</h3>
+          <div class="summary-grid">
+            <div class="summary-card">
+              <div class="card-header">Información General</div>
+              <div class="card-body">
+                <div class="info-row">
+                  <span class="info-key">Nombre:</span>
+                  <span class="info-value">{{ bono.nombre }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-key">Descripción:</span>
+                  <span class="info-value">{{ bono.descripcion || 'No disponible' }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-key">Moneda:</span>
+                  <span class="info-value">{{ bono.moneda }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-key">Método:</span>
+                  <span class="info-value">{{ bono.metodoAmortizacion }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="summary-card">
+              <div class="card-header">Resultados Principales</div>
+              <div class="card-body">
+                <div class="info-row">
+                  <span class="info-key">Valor Nominal:</span>
+                  <span class="info-value">{{ valorNominal | currency:bono.moneda }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-key">Total Cuotas:</span>
+                  <span class="info-value">{{ totalCuotas | currency:bono.moneda }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-key">Total Interés:</span>
+                  <span class="info-value">{{ totalInteres | currency:bono.moneda }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-key">Periodos:</span>
+                  <span class="info-value">{{ calculationResults.length }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cash Flow Tab -->
+        <div *ngIf="activeTab === 'flujoCaja'" class="tab-pane">
+          <h3>Tabla de Amortización</h3>
+          <div class="table-container">
+            <table class="cashflow-table">
+              <thead>
+              <tr>
+                <th class="table-header">Periodo</th>
+                <th class="table-header">Saldo Inicial</th>
+                <th class="table-header">Cuota</th>
+                <th class="table-header">Interés</th>
+                <th class="table-header">Amortización</th>
+                <th class="table-header">Saldo Final</th>
+              </tr>
+              </thead>
+              <tbody>
+              <tr *ngFor="let flow of calculationResults; let i = index">
+                <td>{{ i }}</td>
+                <td>{{ flow.saldoInicial | number:'1.2-2' }}</td>
+                <td>{{ flow.cuota | number:'1.2-2' }}</td>
+                <td>{{ flow.interes | number:'1.2-2' }}</td>
+                <td>{{ flow.amortizacion | number:'1.2-2' }}</td>
+                <td>{{ flow.saldoFinal | number:'1.2-2' }}</td>
+              </tr>
+              </tbody>
+              <tfoot>
+              <tr>
+                <th>Total</th>
+                <th>{{ valorNominal | number:'1.2-2' }}</th>
+                <th>{{ totalCuotas | number:'1.2-2' }}</th>
+                <th>{{ totalInteres | number:'1.2-2' }}</th>
+                <th>{{ totalAmortizacion | number:'1.2-2' }}</th>
+                <th>0.00</th>
+              </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <!-- Charts Tab -->
+        <div *ngIf="activeTab === 'graficas'" class="tab-pane">
+          <h3>Gráficas</h3>
+          <div class="charts-container">
+            <div class="chart-box">
+              <div class="chart-title">Flujo de Caja</div>
+              <div class="chart-content">
+                <canvas id="flujoChart"></canvas>
+              </div>
+            </div>
+            <div class="chart-box">
+              <div class="chart-title">Distribución de Pagos</div>
+              <div class="chart-content">
+                <canvas id="pagosChart"></canvas>
+              </div>
+            </div>
+            <div class="chart-box">
+              <div class="chart-title">Evolución del Saldo</div>
+              <div class="chart-content">
+                <canvas id="saldoChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Financial Indicators Tab -->
+        <div *ngIf="activeTab === 'indicadores'" class="tab-pane">
+          <h3>Indicadores Financieros</h3>
+          <div class="indicators-grid">
+            <div class="indicator-card">
+              <div class="indicator-title">Valor Nominal</div>
+              <div class="indicator-value">{{ valorNominal | currency:bono.moneda:'symbol':'1.2-2' }}</div>
+              <div class="indicator-desc">Valor inicial del bono</div>
+            </div>
+
+            <div class="indicator-card">
+              <div class="indicator-title">Total Intereses</div>
+              <div class="indicator-value">{{ totalInteres | currency:bono.moneda:'symbol':'1.2-2' }}</div>
+              <div class="indicator-desc">Suma total de intereses pagados</div>
+            </div>
+
+            <div class="indicator-card">
+              <div class="indicator-title">Total Amortización</div>
+              <div class="indicator-value">{{ totalAmortizacion | currency:bono.moneda:'symbol':'1.2-2' }}</div>
+              <div class="indicator-desc">Suma total de la amortización</div>
+            </div>
+
+            <div class="indicator-card">
+              <div class="indicator-title">Total Cuotas</div>
+              <div class="indicator-value">{{ totalCuotas | currency:bono.moneda:'symbol':'1.2-2' }}</div>
+              <div class="indicator-desc">Suma total de las cuotas</div>
+            </div>
+
+            <div class="indicator-card">
+              <div class="indicator-title">Número de Periodos</div>
+              <div class="indicator-value">
+                {{ (calculationResults.length > 0 ? (totalCuotas / calculationResults.length) : 0) | currency:bono.moneda:'symbol':'1.2-2' }}
+              </div>
+              <div class="indicator-desc">Total de periodos de pago</div>
+            </div>
+
+            <div class="indicator-card">
+              <div class="indicator-title">Cuota Promedio</div>
+              <div class="indicator-value">
+                {{ (calculationResults.length > 0 ? (totalCuotas / calculationResults.length) : 0) | currency:bono.moneda:'symbol':'1.2-2' }}
+              </div>
+              <div class="indicator-desc">Monto promedio por cuota</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<app-footer></app-footer>
